@@ -13,10 +13,40 @@ const BLOQUEO_TIEMPO = 5 * 60 * 1000;
 
 const db = {
     users: new Map(),
-    stocks: new Map(),
     admins: new Set([ADMIN_ID]),
-    keys: [],
     sesiones: new Map()
+};
+
+// ─── PRODUCTOS Y PRECIOS ───
+const productos = {
+    'drip_client': {
+        nombre: 'DRIP CLIENT APKMOD',
+        precios: { '1d': 3, '7d': 8, '15d': 13, '30d': 17 }
+    },
+    'hg_cheats': {
+        nombre: 'HG CHEATS APKMOD',
+        precios: { '1d': 2, '7d': 6, '15d': 12, '30d': 15 }
+    },
+    'prime_hook': {
+        nombre: 'PRIME HOOK APKMOD',
+        precios: { '1d': 3, '7d': 8, '15d': 13, '30d': 17 }
+    },
+    'pato_team': {
+        nombre: 'PATO TEAM APKMOD',
+        precios: { '1d': 3, '7d': 8, '15d': 13, '30d': 17 }
+    },
+    'cuban_proxy': {
+        nombre: 'CUBAN PROXY APKMOD',
+        precios: { '1d': 3, '7d': 8, '15d': 13, '30d': 17 }
+    },
+    'drip_proxy': {
+        nombre: 'DRIP CLIENT PROXY APKMOD',
+        precios: { '1d': 3, '7d': 8, '15d': 13, '30d': 17 }
+    },
+    'netflix_proxy': {
+        nombre: 'NETFLIX PROXY APKMOD',
+        precios: { '1d': 3, '7d': 8, '15d': 13, '30d': 17 }
+    }
 };
 
 // ─── PUERTO ───
@@ -31,8 +61,7 @@ function menuPrincipal(ctx) {
         `✅ ¡Hola <b>${ctx.from.first_name}</b>!\n\nBienvenido al bot. Inicia sesión para continuar.`,
         Markup.inlineKeyboard([
             [Markup.button.callback('🛒 Comprar Keys', 'comprarkeys')],
-            [Markup.button.callback('📦 Ver Stocks', 'verstocks'), Markup.button.callback('👤 Mi Cuenta', 'micuenta')],
-            [Markup.button.callback('📩 Soporte', 'soporte')],
+            [Markup.button.callback('👤 Mi Cuenta', 'micuenta'), Markup.button.callback('📩 Soporte', 'soporte')],
             [Markup.button.callback('🔙 Volver al Menú Principal', 'menuprincipal')]
         ])
     );
@@ -41,7 +70,7 @@ function menuPrincipal(ctx) {
 bot.start((ctx) => menuPrincipal(ctx));
 bot.action('menuprincipal', (ctx) => { ctx.answerCbQuery(); menuPrincipal(ctx); });
 
-// ─── SOPORTE CON TEXTO BONITO ───
+// ─── SOPORTE ───
 bot.command('soporte', (ctx) => {
     ctx.replyWithHTML(
         `📩 <b>SOPORTE Y REGISTRO</b> 📩\n\n` +
@@ -71,7 +100,7 @@ bot.action('soporte', (ctx) => {
     );
 });
 
-// ─── LOGIN CON TEXTO BONITO ───
+// ─── LOGIN ───
 bot.command('login', (ctx) => {
     const userId = ctx.from.id;
     
@@ -149,49 +178,115 @@ bot.command('login', (ctx) => {
     );
 });
 
-// ─── RESTO DE COMANDOS (COMPRAR KEYS, STOCKS, ADMIN, ETC.) ───
-bot.command('comprarkeys', (ctx) => {
+// ─── COMPRAR KEYS — LISTA DE PRODUCTOS ───
+function mostrarProductos(ctx) {
     ctx.replyWithHTML(
-        `🎁 <b>COMPRAR KEYS</b> 🎁\n\n⏳ 1 Día → $3 USD\n⏳ 7 Días → $8 USD\n⏳ 15 Días → $13 USD\n⏳ 30 Días → $17 USD`,
+        `🎁 <b>COMPRAR KEYS</b> 🎁\n\nElige el producto que quieres comprar:\n\n` +
+        `━━━━━━━━━━━━━━━━━━━━\n` +
+        `📱 DRIP CLIENT APKMOD\n` +
+        `📱 HG CHEATS APKMOD\n` +
+        `📱 PRIME HOOK APKMOD\n` +
+        `📱 PATO TEAM APKMOD\n` +
+        `📱 CUBAN PROXY APKMOD\n` +
+        `📱 DRIP CLIENT PROXY APKMOD\n` +
+        `📱 NETFLIX PROXY APKMOD\n` +
+        `━━━━━━━━━━━━━━━━━━━━`,
         Markup.inlineKeyboard([
-            [Markup.button.callback('⏳ 1 Día - $3', 'dias1')],
-            [Markup.button.callback('⏳ 7 Días - $8', 'dias7')],
-            [Markup.button.callback('⏳ 15 Días - $13', 'dias15')],
-            [Markup.button.callback('⏳ 30 Días - $17', 'dias30')],
+            [Markup.button.callback('📱 DRIP CLIENT', 'prod_drip_client')],
+            [Markup.button.callback('📱 HG CHEATS', 'prod_hg_cheats')],
+            [Markup.button.callback('📱 PRIME HOOK', 'prod_prime_hook')],
+            [Markup.button.callback('📱 PATO TEAM', 'prod_pato_team')],
+            [Markup.button.callback('📱 CUBAN PROXY', 'prod_cuban_proxy')],
+            [Markup.button.callback('📱 DRIP CLIENT PROXY', 'prod_drip_proxy')],
+            [Markup.button.callback('📱 NETFLIX PROXY', 'prod_netflix_proxy')],
+            [Markup.button.callback('🔙 Volver al Menú Principal', 'menuprincipal')]
+        ])
+    );
+}
+
+bot.command('comprarkeys', mostrarProductos);
+bot.action('comprarkeys', (ctx) => { ctx.answerCbQuery(); mostrarProductos(ctx); });
+
+// ─── MOSTRAR PRECIOS DE CADA PRODUCTO ───
+function mostrarPrecios(ctx, prodKey) {
+    const prod = productos[prodKey];
+    ctx.replyWithHTML(
+        `📱 <b>${prod.nombre}</b>\n\n` +
+        `⏳ 1 Día    →   $${prod.precios['1d']} USD\n` +
+        `⏳ 7 Días   →   $${prod.precios['7d']} USD\n` +
+        `⏳ 15 Días  →  $${prod.precios['15d']} USD\n` +
+        `⏳ 30 Días  →  $${prod.precios['30d']} USD\n\nElige la duración:`,
+        Markup.inlineKeyboard([
+            [Markup.button.callback(`⏳ 1 Día - $${prod.precios['1d']}`, `buy_${prodKey}_1d`)],
+            [Markup.button.callback(`⏳ 7 Días - $${prod.precios['7d']}`, `buy_${prodKey}_7d`)],
+            [Markup.button.callback(`⏳ 15 Días - $${prod.precios['15d']}`, `buy_${prodKey}_15d`)],
+            [Markup.button.callback(`⏳ 30 Días - $${prod.precios['30d']}`, `buy_${prodKey}_30d`)],
+            [Markup.button.callback('🔙 Volver a Productos', 'comprarkeys')],
+            [Markup.button.callback('🔙 Volver al Menú Principal', 'menuprincipal')]
+        ])
+    );
+}
+
+// Botones de productos
+bot.action('prod_drip_client', (ctx) => { ctx.answerCbQuery(); mostrarPrecios(ctx, 'drip_client'); });
+bot.action('prod_hg_cheats', (ctx) => { ctx.answerCbQuery(); mostrarPrecios(ctx, 'hg_cheats'); });
+bot.action('prod_prime_hook', (ctx) => { ctx.answerCbQuery(); mostrarPrecios(ctx, 'prime_hook'); });
+bot.action('prod_pato_team', (ctx) => { ctx.answerCbQuery(); mostrarPrecios(ctx, 'pato_team'); });
+bot.action('prod_cuban_proxy', (ctx) => { ctx.answerCbQuery(); mostrarPrecios(ctx, 'cuban_proxy'); });
+bot.action('prod_drip_proxy', (ctx) => { ctx.answerCbQuery(); mostrarPrecios(ctx, 'drip_proxy'); });
+bot.action('prod_netflix_proxy', (ctx) => { ctx.answerCbQuery(); mostrarPrecios(ctx, 'netflix_proxy'); });
+
+// Confirmación de compra
+bot.action(/^buy_(.+)_(.+)$/, (ctx) => {
+    ctx.answerCbQuery();
+    const match = ctx.callbackQuery.data.match(/^buy_(.+)_(.+)$/);
+    const prodKey = match[1];
+    const duracion = match[2];
+    const prod = productos[prodKey];
+    
+    const diasTexto = duracion === '1d' ? '1 Día' : duracion === '7d' ? '7 Días' : duracion === '15d' ? '15 Días' : '30 Días';
+    
+    ctx.replyWithHTML(
+        `✅ <b>¡SOLICITUD ENVIADA!</b> 🎉\n\n` +
+        `📱 Producto: ${prod.nombre}\n` +
+        `⏳ Duración: ${diasTexto}\n` +
+        `💰 Precio: $${prod.precios[duracion]} USD\n\n` +
+        `💬 Para pagar y recibir tu key, escríbeme por WhatsApp:`,
+        Markup.inlineKeyboard([
+            [Markup.button.url('💬 Pagar por WhatsApp', WHATSAPP_LINK)],
             [Markup.button.callback('🔙 Volver al Menú Principal', 'menuprincipal')]
         ])
     );
 });
-bot.action('comprarkeys', (ctx) => { ctx.answerCbQuery(); ctx.command('comprarkeys'); });
 
-bot.command('verstocks', (ctx) => {
-    if (db.stocks.size === 0) return ctx.replyWithHTML(`❌ No hay productos disponibles`, Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver al Menú Principal', 'menuprincipal')]]));
-    let texto = '📦 <b>PRODUCTOS DISPONIBLES</b> 📦\n\n';
-    db.stocks.forEach((prod, nombre) => {
-        texto += `━━━━━━━━━━━━━━━━━━━━\n📱 <b>${nombre}</b>\n   ├─ Precio: ${prod.precio}\n   ├─ Stock: ${prod.cantidad}\n   └─ ${prod.descripcion}\n`;
-    });
-    ctx.replyWithHTML(texto, Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver al Menú Principal', 'menuprincipal')]]));
-});
-bot.action('verstocks', (ctx) => { ctx.answerCbQuery(); ctx.command('verstocks'); });
-
+// ─── MI CUENTA ───
 bot.action('micuenta', (ctx) => {
     ctx.answerCbQuery();
     const sesion = db.sesiones.get(ctx.from.id);
-    if (!sesion || !sesion.activa) return ctx.replyWithHTML(`❌ No tienes sesión abierta. Usa /login`, Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver al Menú Principal', 'menuprincipal')]]));
+    if (!sesion || !sesion.activa) {
+        return ctx.replyWithHTML(
+            `❌ No tienes sesión abierta. Usa /login`,
+            Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver al Menú Principal', 'menuprincipal')]])
+        );
+    }
     const datos = db.users.get(sesion.usuario);
-    ctx.replyWithHTML(`👤 <b>MI CUENTA</b>\n\nUsuario: ${sesion.usuario}\nSaldo: ${datos.saldo}\nEstado: ${datos.vip ? '⭐ VIP' : 'Usuario normal'}`, Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver al Menú Principal', 'menuprincipal')]]));
+    ctx.replyWithHTML(
+        `👤 <b>MI CUENTA</b>\n\n` +
+        `Usuario: ${sesion.usuario}\n` +
+        `Saldo: ${datos.saldo}\n` +
+        `Estado: ${datos.vip ? '⭐ VIP' : 'Usuario normal'}`,
+        Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver al Menú Principal', 'menuprincipal')]])
+    );
 });
 
+// ─── PANEL DE ADMIN ───
 bot.command('admin', (ctx) => {
     if (!db.admins.has(ctx.from.id)) return ctx.reply('❌ No tienes permiso');
-    ctx.replyWithHTML(`✨ <b>PANEL DE ADMINISTRADOR</b> ✨\n\n🔒 Tu cuenta está PROTEGIDA\n✨ PORTAL ARCEUS 🚀`,
+    ctx.replyWithHTML(
+        `✨ <b>PANEL DE ADMINISTRADOR</b> ✨\n\n🔒 Tu cuenta está PROTEGIDA\n✨ PORTAL ARCEUS 🚀`,
         Markup.inlineKeyboard([
-            [Markup.button.callback('👤 Crear Usuario', 'crearusuario'), Markup.button.callback('🗑️ Quitar Admin', 'quitaradmin')],
-            [Markup.button.callback('⭐ Agregar VIP', 'agregarvip'), Markup.button.callback('💰 Agregar Saldo', 'agregarsaldo')],
+            [Markup.button.callback('👤 Crear Usuario', 'crearusuario'), Markup.button.callback('⭐ Agregar VIP', 'agregarvip')],
             [Markup.button.callback('👥 Ver Usuarios', 'verusuarios'), Markup.button.callback('📊 Total Usuarios', 'totalusuarios')],
-            [Markup.button.callback('📦 Agregar Stock', 'agregarstock'), Markup.button.callback('✏️ Editar Stock', 'editarstock')],
-            [Markup.button.callback('🗑️ Quitar Stock', 'quitarstock'), Markup.button.callback('📦 Ver Stocks', 'verstocks')],
-            [Markup.button.callback('🎁 Agregar Case', 'agregarcase'), Markup.button.callback('🔑 Generar Llaves', 'generarkey')],
             [Markup.button.callback('📢 Aviso General', 'avisogeneral')],
             [Markup.button.callback('🔙 Volver al Menú Principal', 'menuprincipal')]
         ])
@@ -223,18 +318,6 @@ bot.command('agregarvip', (ctx) => {
     ctx.replyWithHTML(`✅ <b>USUARIO VIP CREADO</b> 🎉\n\n👤 Usuario: ${usuario}\n🔐 Contraseña: ${contraseña}\n⭐ VIP ACTIVO\n💰 Saldo: ${saldo}`, Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver al Menú Principal', 'menuprincipal')]]));
 });
 
-bot.command('agregarstock', (ctx) => {
-    if (!db.admins.has(ctx.from.id)) return;
-    const partes = ctx.message.text.substring(14).trim().split('|').map(p => p.trim());
-    if (partes.length < 4) return ctx.replyWithHTML(`❌ <b>FALTAN DATOS</b> ⚠️\n\nEscribe así:\n/agregarstock NOMBRE | PRECIO | CANTIDAD | DESCRIPCIÓN`, Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver al Menú Principal', 'menuprincipal')]]));
-    const [nombre, precio, cantidad, ...descParts] = partes;
-    const descripcion = descParts.join(' ');
-    if (isNaN(precio) || isNaN(cantidad)) return ctx.reply('❌ Precio y cantidad deben ser números');
-    if (db.stocks.has(nombre)) return ctx.reply('❌ Este producto ya existe');
-    db.stocks.set(nombre, { precio, cantidad: parseInt(cantidad), descripcion });
-    ctx.replyWithHTML(`✅ <b>PRODUCTO GUARDADO</b> 🎉\n\n📦 ${nombre}\n💰 Precio: ${precio}\n📊 Cantidad: ${cantidad}`, Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver al Menú Principal', 'menuprincipal')]]));
-});
-
 bot.command('avisogeneral', (ctx) => {
     if (!db.admins.has(ctx.from.id)) return;
     const match = ctx.message.text.substring(14).trim().match(/¡(.+)!/);
@@ -264,7 +347,6 @@ bot.action('totalusuarios', (ctx) => {
 
 bot.action('crearusuario', (ctx) => { ctx.answerCbQuery(); ctx.replyWithHTML(`👤 <b>CREAR USUARIO</b>\n\nEscribe así:\n/crearusuario\nuser:nombre\ncontraseña:clave`, Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver al Menú Principal', 'menuprincipal')]])); });
 bot.action('agregarvip', (ctx) => { ctx.answerCbQuery(); ctx.replyWithHTML(`⭐ <b>AGREGAR VIP</b>\n\nEscribe así:\n/agregarvip\nuser:nombre\ncontraseña:clave\nsaldo:10`, Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver al Menú Principal', 'menuprincipal')]])); });
-bot.action('agregarstock', (ctx) => { ctx.answerCbQuery(); ctx.replyWithHTML(`📦 <b>AGREGAR STOCK</b>\n\nEscribe así:\n/agregarstock NOMBRE | PRECIO | CANTIDAD | DESCRIPCIÓN`, Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver al Menú Principal', 'menuprincipal')]])); });
 bot.action('avisogeneral', (ctx) => { ctx.answerCbQuery(); ctx.replyWithHTML(`📢 <b>AVISO GENERAL</b>\n\nEscribe así:\n/avisogeneral ¡Tu mensaje aquí!`, Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver al Menú Principal', 'menuprincipal')]])); });
 
 bot.catch((err, ctx) => {
@@ -275,4 +357,4 @@ bot.catch((err, ctx) => {
 bot.launch().then(() => console.log('✅ BOT ENCENDIDO 🟢'));
 process.once('SIGINT', () => bot.stop('SIGINT'));
 process.once('SIGTERM', () => bot.stop('SIGTERM'));
-    
+        
