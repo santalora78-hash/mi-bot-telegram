@@ -13,7 +13,7 @@ const bot = new Telegraf(TOKEN);
 
 // ─── BASE DE DATOS ───
 const db = {
-    users: new Map(),          // {id: {nombre, usuario, contraseña, vip, saldo, bloqueado}}
+    users: new Map(),
     stocks: new Map(),
     admins: new Set([ADMIN_ID]),
     saldos: new Map(),
@@ -285,14 +285,15 @@ bot.command('agregarstocks', (ctx) => {
     ctx.replyWithHTML(respuesta, Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver al Panel de Admin', 'admin')]]));
 });
 
-// ─── PANEL DE ADMIN COMPLETO ───
+// ─── PANEL DE ADMIN COMPLETO CON TODAS LAS OPCIONES ✅ ───
 bot.command('admin', (ctx) => {
     if (!db.admins.has(ctx.from.id)) return ctx.reply('❌ No tienes permiso');
     ctx.replyWithHTML(
         `✨ <b>PANEL DE ADMINISTRADOR</b> ✨\n\n🔒 Tu cuenta está PROTEGIDA\n✨ PORTAL ARCEUS 🚀`,
         Markup.inlineKeyboard([
-            [Markup.button.callback('👤 Crear Usuario', 'crearusuario'), Markup.button.callback('👥 Ver Usuarios', 'verusuarios')],
+            [Markup.button.callback('👤 Crear Usuario', 'crearusuario'), Markup.button.callback('🗑️ Quitar Admin', 'quitaradmin')],
             [Markup.button.callback('⭐ Agregar VIP', 'agregarvip'), Markup.button.callback('💰 Agregar Saldo', 'agregarsaldo')],
+            [Markup.button.callback('👥 Ver Usuarios', 'verusuarios'), Markup.button.callback('📊 Total Usuarios', 'totalusuarios')],
             [Markup.button.callback('📦 Agregar Stock', 'agregarstock_menu'), Markup.button.callback('✏️ Editar Stock', 'editarstock')],
             [Markup.button.callback('🗑️ Quitar Stock', 'quitarstock'), Markup.button.callback('📦 Ver Stocks', 'verstocks')],
             [Markup.button.callback('🎁 Agregar Case', 'agregarcase'), Markup.button.callback('🔑 Generar Llaves', 'generarllaves')],
@@ -323,7 +324,6 @@ bot.command('crearusuario', (ctx) => {
     const usuario = matchUser[1];
     const contraseña = matchPass[1];
     
-    // Buscar si ya existe ese nombre de usuario
     let userIdExistente = null;
     for (const [id, datos] of db.users) {
         if (datos.usuario === usuario) {
@@ -365,7 +365,7 @@ bot.action('gestionarusuarios', (ctx) => {
             texto += `👤 ${userDisplay} — ${estado}\n`;
         });
     }
-    texto += `━━━━━━━━━━━━━━━━━━━━\n\nEscribe el nombre de usuario y elige qué hacer:`;
+    texto += `━━━━━━━━━━━━━━━━━━━━\n\nElige qué hacer:`;
     
     ctx.replyWithHTML(texto, Markup.inlineKeyboard([
         [Markup.button.callback('🗑️ Eliminar Usuario', 'menu_eliminar_usuario')],
@@ -374,7 +374,7 @@ bot.action('gestionarusuarios', (ctx) => {
     ]));
 });
 
-// ─── MENÚ ELIMINAR USUARIO ───
+// ─── ELIMINAR USUARIO ───
 bot.action('menu_eliminar_usuario', (ctx) => {
     ctx.answerCbQuery();
     ctx.replyWithHTML(`🗑️ <b>ELIMINAR USUARIO</b>\n\nEscribe así:\n/eliminarusuario nombre_de_usuario\n\n⚠️ Se eliminarán sus datos y quedará libre para crear otro igual.`, Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver a Gestionar Usuarios', 'gestionarusuarios')]]));
@@ -404,7 +404,7 @@ bot.command('eliminarusuario', (ctx) => {
     }
 });
 
-// ─── MENÚ BLOQUEAR USUARIO ───
+// ─── BLOQUEAR USUARIO ───
 bot.action('menu_bloquear_usuario', (ctx) => {
     ctx.answerCbQuery();
     ctx.replyWithHTML(`🔒 <b>BLOQUEAR USUARIO</b>\n\nEscribe así:\n/bloquearusuario nombre_de_usuario\n\n⚠️ El usuario ya no podrá entrar al bot.`, Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver a Gestionar Usuarios', 'gestionarusuarios')]]));
@@ -476,4 +476,4 @@ bot.action('agregarsaldo', (ctx) => {
 
 bot.action('editarstock', (ctx) => {
     ctx.answerCbQuery();
-    ctx.replyWithHTML(`✏️ <b>EDITAR STOCK</b>\n\nEscribe así:\n/editardstock PRODUCTO DURACIÓ
+    ctx.replyWithHTML(`✏️ <b>EDITAR STOCK</b>\n\nEscribe así:\n/editardstock PRODUCTO DURACIÓN
