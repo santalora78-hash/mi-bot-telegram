@@ -285,7 +285,7 @@ bot.command('agregarstocks', (ctx) => {
     ctx.replyWithHTML(respuesta, Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver al Panel de Admin', 'admin')]]));
 });
 
-// ─── PANEL DE ADMIN COMPLETO CON TODAS LAS OPCIONES ✅ ───
+// ─── PANEL DE ADMIN — CON ELIMINAR Y BLOQUEAR A LA VISTA ✅ ───
 bot.command('admin', (ctx) => {
     if (!db.admins.has(ctx.from.id)) return ctx.reply('❌ No tienes permiso');
     ctx.replyWithHTML(
@@ -294,11 +294,11 @@ bot.command('admin', (ctx) => {
             [Markup.button.callback('👤 Crear Usuario', 'crearusuario'), Markup.button.callback('🗑️ Quitar Admin', 'quitaradmin')],
             [Markup.button.callback('⭐ Agregar VIP', 'agregarvip'), Markup.button.callback('💰 Agregar Saldo', 'agregarsaldo')],
             [Markup.button.callback('👥 Ver Usuarios', 'verusuarios'), Markup.button.callback('📊 Total Usuarios', 'totalusuarios')],
+            [Markup.button.callback('🗑️ Eliminar Usuario', 'menu_eliminar_usuario'), Markup.button.callback('🔒 Bloquear Usuario', 'menu_bloquear_usuario')],
             [Markup.button.callback('📦 Agregar Stock', 'agregarstock_menu'), Markup.button.callback('✏️ Editar Stock', 'editarstock')],
             [Markup.button.callback('🗑️ Quitar Stock', 'quitarstock'), Markup.button.callback('📦 Ver Stocks', 'verstocks')],
             [Markup.button.callback('🎁 Agregar Case', 'agregarcase'), Markup.button.callback('🔑 Generar Llaves', 'generarllaves')],
             [Markup.button.callback('🛒 Comprar Keys', 'comprarkeys'), Markup.button.callback('📢 Aviso General', 'avisogeneral')],
-            [Markup.button.callback('⚙️ Gestionar Usuarios', 'gestionarusuarios')],
             [Markup.button.callback('🔙 Volver al Menú Principal', 'menuprincipal')]
         ])
     );
@@ -351,33 +351,10 @@ bot.command('crearusuario', (ctx) => {
     ctx.replyWithHTML(`✅ <b>USUARIO CREADO</b> 🎉\n\n👤 Usuario: ${usuario}\n🔑 Contraseña: ${contraseña}`, Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver al Panel de Admin', 'admin')]]));
 });
 
-// ─── GESTIONAR USUARIOS ───
-bot.action('gestionarusuarios', (ctx) => {
-    ctx.answerCbQuery();
-    let texto = `⚙️ <b>GESTIONAR USUARIOS</b>\n\n📋 Lista de usuarios:\n━━━━━━━━━━━━━━━━━━━━\n`;
-    
-    if (db.users.size === 0) {
-        texto += `❌ No hay usuarios registrados`;
-    } else {
-        db.users.forEach((u, id) => {
-            const estado = u.bloqueado ? '🔒 Bloqueado' : '✅ Activo';
-            const userDisplay = u.usuario || '(Sin usuario)';
-            texto += `👤 ${userDisplay} — ${estado}\n`;
-        });
-    }
-    texto += `━━━━━━━━━━━━━━━━━━━━\n\nElige qué hacer:`;
-    
-    ctx.replyWithHTML(texto, Markup.inlineKeyboard([
-        [Markup.button.callback('🗑️ Eliminar Usuario', 'menu_eliminar_usuario')],
-        [Markup.button.callback('🔒 Bloquear Usuario', 'menu_bloquear_usuario')],
-        [Markup.button.callback('🔙 Volver al Panel de Admin', 'admin')]
-    ]));
-});
-
-// ─── ELIMINAR USUARIO ───
+// ─── ELIMINAR USUARIO — BOTÓN DIRECTO ───
 bot.action('menu_eliminar_usuario', (ctx) => {
     ctx.answerCbQuery();
-    ctx.replyWithHTML(`🗑️ <b>ELIMINAR USUARIO</b>\n\nEscribe así:\n/eliminarusuario nombre_de_usuario\n\n⚠️ Se eliminarán sus datos y quedará libre para crear otro igual.`, Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver a Gestionar Usuarios', 'gestionarusuarios')]]));
+    ctx.replyWithHTML(`🗑️ <b>ELIMINAR USUARIO</b>\n\nEscribe así:\n/eliminarusuario nombre_de_usuario\n\n⚠️ Se eliminarán sus datos y quedará libre para crear otro igual.`, Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver al Panel de Admin', 'admin')]]));
 });
 
 bot.command('eliminarusuario', (ctx) => {
@@ -385,7 +362,7 @@ bot.command('eliminarusuario', (ctx) => {
     
     const nombreUsuario = ctx.message.text.substring(16).trim();
     if (!nombreUsuario) {
-        return ctx.replyWithHTML(`❌ Escribe el nombre de usuario:\n/eliminarusuario juan77`, Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver a Gestionar Usuarios', 'gestionarusuarios')]]));
+        return ctx.replyWithHTML(`❌ Escribe el nombre de usuario:\n/eliminarusuario juan77`, Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver al Panel de Admin', 'admin')]]));
     }
     
     let encontrado = false;
@@ -398,16 +375,16 @@ bot.command('eliminarusuario', (ctx) => {
     }
     
     if (encontrado) {
-        ctx.replyWithHTML(`✅ <b>USUARIO Y CONTRASEÑA ELIMINADO</b>`, Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver a Gestionar Usuarios', 'gestionarusuarios')]]));
+        ctx.replyWithHTML(`✅ <b>USUARIO Y CONTRASEÑA ELIMINADO</b>`, Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver al Panel de Admin', 'admin')]]));
     } else {
-        ctx.replyWithHTML(`❌ <b>Usuario no encontrado</b>`, Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver a Gestionar Usuarios', 'gestionarusuarios')]]));
+        ctx.replyWithHTML(`❌ <b>Usuario no encontrado</b>`, Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver al Panel de Admin', 'admin')]]));
     }
 });
 
-// ─── BLOQUEAR USUARIO ───
+// ─── BLOQUEAR USUARIO — BOTÓN DIRECTO ───
 bot.action('menu_bloquear_usuario', (ctx) => {
     ctx.answerCbQuery();
-    ctx.replyWithHTML(`🔒 <b>BLOQUEAR USUARIO</b>\n\nEscribe así:\n/bloquearusuario nombre_de_usuario\n\n⚠️ El usuario ya no podrá entrar al bot.`, Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver a Gestionar Usuarios', 'gestionarusuarios')]]));
+    ctx.replyWithHTML(`🔒 <b>BLOQUEAR USUARIO</b>\n\nEscribe así:\n/bloquearusuario nombre_de_usuario\n\n⚠️ El usuario ya no podrá entrar al bot.`, Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver al Panel de Admin', 'admin')]]));
 });
 
 bot.command('bloquearusuario', (ctx) => {
@@ -415,7 +392,7 @@ bot.command('bloquearusuario', (ctx) => {
     
     const nombreUsuario = ctx.message.text.substring(16).trim();
     if (!nombreUsuario) {
-        return ctx.replyWithHTML(`❌ Escribe el nombre de usuario:\n/bloquearusuario juan77`, Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver a Gestionar Usuarios', 'gestionarusuarios')]]));
+        return ctx.replyWithHTML(`❌ Escribe el nombre de usuario:\n/bloquearusuario juan77`, Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver al Panel de Admin', 'admin')]]));
     }
     
     let usuarioId = null;
@@ -429,9 +406,9 @@ bot.command('bloquearusuario', (ctx) => {
     
     if (usuarioId) {
         ctx.telegram.sendMessage(usuarioId, `⚠️ TU USUARIO Y CONTRASEÑA HA SIDO BLOQUEADO PERMANENTE POR EL ADMIN`);
-        ctx.replyWithHTML(`✅ <b>USUARIO BLOQUEADO</b>\n\nEl usuario ya no puede entrar.`, Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver a Gestionar Usuarios', 'gestionarusuarios')]]));
+        ctx.replyWithHTML(`✅ <b>USUARIO BLOQUEADO</b>\n\nEl usuario ya no puede entrar.`, Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver al Panel de Admin', 'admin')]]));
     } else {
-        ctx.replyWithHTML(`❌ <b>Usuario no encontrado</b>`, Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver a Gestionar Usuarios', 'gestionarusuarios')]]));
+        ctx.replyWithHTML(`❌ <b>Usuario no encontrado</b>`, Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver al Panel de Admin', 'admin')]]));
     }
 });
 
@@ -476,4 +453,23 @@ bot.action('agregarsaldo', (ctx) => {
 
 bot.action('editarstock', (ctx) => {
     ctx.answerCbQuery();
-    ctx.replyWithHTML(`✏️ <b>EDITAR STOCK</b>\n\nEscribe así:\n/editardstock PRODUCTO DURACIÓN
+    ctx.replyWithHTML(`✏️ <b>EDITAR STOCK</b>\n\nEscribe así:\n/editardstock PRODUCTO DURACIÓN`, Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver al Panel de Admin', 'admin')]]));
+});
+
+bot.action('quitarstock', (ctx) => {
+    ctx.answerCbQuery();
+    ctx.replyWithHTML(`🗑️ <b>QUITAR STOCK</b>\n\nEscribe así:\n/quitarstock PRODUCTO DURACIÓN`, Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver al Panel de Admin', 'admin')]]));
+});
+
+bot.action('agregarcase', (ctx) => {
+    ctx.answerCbQuery();
+    ctx.replyWithHTML(`🎁 <b>AGREGAR CASE</b>\n\nEscribe así:\n/agregarcase NOMBRE PRECIO`, Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver al Panel de Admin', 'admin')]]));
+});
+
+bot.action('generarllaves', (ctx) => {
+    ctx.answerCbQuery();
+    ctx.replyWithHTML(`🔑 <b>GENERAR LLAVES</b>\n\nEscribe así:\n/generarllaves CANTIDAD`, Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver al Panel de Admin', 'admin')]]));
+});
+
+bot.action('avisogeneral', (ctx) => {
+    ctx.answerCb
