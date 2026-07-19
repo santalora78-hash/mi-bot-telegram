@@ -7,9 +7,8 @@ const WHATSAPP_LINK = 'https://wa.me/+529241043399';
 
 const bot = new Telegraf(TOKEN);
 
-// ─── BASE DE DATOS ACTUALIZADA CON SALDO ───
 const db = {
-    users: new Map(),      // {id: {..., saldo: 0}}
+    users: new Map(),
     stocks: new Map(),
     admins: new Set([ADMIN_ID]),
     historial: []
@@ -37,7 +36,7 @@ function registrarUsuarioSiNoExiste(ctx) {
             usuario: null, 
             contraseña: null, 
             bloqueado: false,
-            saldo: 0  // 💰 SALDO INICIAL EN 0
+            saldo: 0
         });
     }
 }
@@ -59,7 +58,6 @@ function menuPrincipal(ctx) {
 bot.start(c => menuPrincipal(c));
 bot.action('menuprincipal', c => { c.answerCbQuery(); menuPrincipal(c); });
 
-// ─── PANEL DE ADMIN COMPLETO ───
 bot.command('admin', c => {
     if (!db.admins.has(c.from.id)) return;
     c.replyWithHTML(`✨ <b>PANEL DE ADMINISTRADOR</b> ✨\n🔒 Tu cuenta está PROTEGIDA\n✨ PORTAL ARCEUS 🚀`, Markup.inlineKeyboard([
@@ -75,7 +73,6 @@ bot.command('admin', c => {
     ]));
 });
 
-// ─── AGREGAR SALDO A USUARIO ───
 bot.action('agregarsaldo', c => {
     c.answerCbQuery();
     c.replyWithHTML(`💰 <b>AGREGAR SALDO</b>\n\nEscribe así:\n/agregarsaldo ID CANTIDAD\n\nEjemplo:\n/agregarsaldo 123456789 5`, Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver', 'admin')]]));
@@ -95,7 +92,6 @@ bot.command('agregarsaldo', c => {
     c.replyWithHTML(`✅ <b>SALDO AGREGADO</b>\n\n👤 Usuario ID: ${id}\n💰 +$${cantidad} USD\n💰 Saldo total: $${usuario.saldo.toFixed(2)} USD`, Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver', 'admin')]]));
 });
 
-// ─── ELIMINAR USUARIO ───
 bot.action('menu_eliminar', c => {
     c.answerCbQuery();
     c.replyWithHTML(`🗑️ <b>ELIMINAR USUARIO</b>\n\nEscribe así:\n/eliminarusuario nombre_usuario`, Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver al Panel', 'admin')]]));
@@ -112,7 +108,6 @@ bot.command('eliminarusuario', c => {
     c.replyWithHTML(encontrado ? `✅ <b>USUARIO ELIMINADO</b>` : `❌ <b>No encontrado</b>`, Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver', 'admin')]]));
 });
 
-// ─── BLOQUEAR USUARIO ───
 bot.action('menu_bloquear', c => {
     c.answerCbQuery();
     c.replyWithHTML(`🔒 <b>BLOQUEAR USUARIO</b>\n\nEscribe así:\n/bloquearusuario nombre_usuario`, Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver al Panel', 'admin')]]));
@@ -130,7 +125,6 @@ bot.command('bloquearusuario', c => {
     c.replyWithHTML(uid ? `✅ <b>USUARIO BLOQUEADO</b>` : `❌ <b>No encontrado</b>`, Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver', 'admin')]]));
 });
 
-// ─── CREAR USUARIO ───
 bot.action('crearusuario', c => {
     c.answerCbQuery();
     c.replyWithHTML(`👤 <b>CREAR USUARIO</b>\n\nEscribe así:\n/crearusuario user:nombre contraseña:1234`, Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver', 'admin')]]));
@@ -149,7 +143,6 @@ bot.command('crearusuario', c => {
     c.replyWithHTML(`✅ <b>USUARIO CREADO</b>\n👤 ${user}\n🔑 ${pass}\n💰 Saldo: $0.00`, Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver', 'admin')]]));
 });
 
-// ─── VER USUARIOS ───
 bot.action('verusuarios', c => {
     c.answerCbQuery();
     let texto = `👥 <b>LISTA DE USUARIOS</b>\n\n`;
@@ -166,7 +159,6 @@ bot.action('totalusuarios', c => {
     c.replyWithHTML(`📊 <b>TOTAL USUARIOS</b>\n\n👤 Total: ${db.users.size}\n✅ Activos: ${db.users.size - bloq}\n🔒 Bloqueados: ${bloq}`, Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver', 'admin')]]));
 });
 
-// ─── COMPRAR KEYS ───
 bot.action('comprarkeys', c => { c.answerCbQuery(); c.replyWithHTML(`🛒 <b>PRODUCTOS</b>`, Markup.inlineKeyboard([
     [Markup.button.callback('📱 DRIP CLIENT', 'prod_drip_client')],
     [Markup.button.callback('📱 HG CHEATS', 'prod_hg_cheats')],
@@ -178,7 +170,7 @@ bot.action('comprarkeys', c => { c.answerCbQuery(); c.replyWithHTML(`🛒 <b>PRO
     [Markup.button.callback('🔙 Volver', 'menuprincipal')]
 ]))});
 
-// ─── ELEGIR DURACIÓN → APARECE BOTÓN COMPRAR DIRECTO ───
+// ✅ AHORA APARECEN TODAS LAS OPCIONES SIEMPRE, TENGAN STOCK O NO
 bot.action(/^prod_(.+)$/, c => {
     c.answerCbQuery();
     const p = c.callbackQuery.data.split('_')[1];
@@ -186,18 +178,19 @@ bot.action(/^prod_(.+)$/, c => {
     const saldo = db.users.get(c.from.id)?.saldo || 0;
     let texto = `📦 <b>${prod.nombre}</b>\n💰 Tu saldo: $${saldo.toFixed(2)} USD\n\nElige duración:\n\n`;
     const botones = [];
+    
+    // 🔄 TODAS LAS OPCIONES SIEMPRE, SIN IMPORTAR STOCK
     for (const [d, precio] of Object.entries(prod.precios)) {
         const stock = db.stocks.get(`${p}_${d}`)?.length || 0;
-        texto += `⏳ ${duraciones[d]} — $${precio} USD ${stock === 0 ? '❌ SIN STOCK' : ''}\n`;
-        if (stock > 0) {
-            botones.push([Markup.button.callback(`⏳ ${duraciones[d]} — $${precio}`, `buycheck_${p}_${d}`)]);
-        }
+        const estado = stock === 0 ? ' ❌ Sin stock' : '';
+        texto += `⏳ ${duraciones[d]} — $${precio} USD${estado}\n`;
+        botones.push([Markup.button.callback(`⏳ ${duraciones[d]} — $${precio}`, `buycheck_${p}_${d}`)]);
     }
+    
     botones.push([Markup.button.callback('🔙 Volver', 'comprarkeys')]);
     c.replyWithHTML(texto, Markup.inlineKeyboard(botones));
 });
 
-// ─── VERIFICAR SALDO Y COMPRAR AUTOMÁTICO ───
 bot.action(/^buycheck_(.+)_(.+)$/, c => {
     c.answerCbQuery();
     const [_, p, d] = c.callbackQuery.data.match(/^buycheck_(.+)_(.+)$/);
@@ -208,7 +201,6 @@ bot.action(/^buycheck_(.+)_(.+)$/, c => {
     const stockKey = `${p}_${d}`;
     const stock = db.stocks.get(stockKey) || [];
 
-    // ❌ SIN SALDO SUFICIENTE
     if (saldoActual < precio) {
         return c.replyWithHTML(
             `❌ <b>SALDO INSUFICIENTE</b>\n\n` +
@@ -223,12 +215,15 @@ bot.action(/^buycheck_(.+)_(.+)$/, c => {
         );
     }
 
-    // ❌ SIN STOCK
     if (stock.length === 0) {
-        return c.replyWithHTML(`❌ <b>SIN STOCK</b>`, Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver', `prod_${p}`)]]));
+        return c.replyWithHTML(
+            `❌ <b>SIN STOCK</b>\n\n` +
+            `Lo sentimos, no hay llaves disponibles para esta duración.\n` +
+            `Vuelve más tarde o elige otra opción.`,
+            Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver', `prod_${p}`)]])
+        );
     }
 
-    // ✅ TODO BIEN → COMPRAR AUTOMÁTICO
     const key = stock.shift();
     db.stocks.set(stockKey, stock);
     usuario.saldo = saldoActual - precio;
@@ -257,7 +252,6 @@ bot.action(/^buycheck_(.+)_(.+)$/, c => {
     );
 });
 
-// ─── AGREGAR STOCK ───
 bot.command('agregarstocks', c => {
     if (!db.admins.has(c.from.id)) return;
     const lineas = c.message.text.substring(15).split('\n').map(l => l.trim()).filter(l => l);
@@ -320,13 +314,12 @@ bot.action('verstocks', c => {
     let texto = `📦 <b>STOCK DE PRODUCTOS</b>\n\n`;
     db.stocks.forEach((keys, clave) => {
         const [p, d] = clave.split('_');
-        if (keys.length > 0) texto += `📦 ${productos[p]?.nombre || p} — ${duraciones[d]}\n📊 ${keys.length} keys\n\n`;
+        texto += `📦 ${productos[p]?.nombre || p} — ${duraciones[d]}\n📊 ${keys.length} keys\n\n`;
     });
-    if (texto === `📦 <b>STOCK DE PRODUCTOS</b>\n\n`) texto += `❌ Sin stock`;
+    if (db.stocks.size === 0) texto += `❌ Sin stock`;
     c.replyWithHTML(texto, Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver', 'admin')]]));
 });
 
-// ─── MIS KEYS ───
 bot.action('miskeys', c => {
     c.answerCbQuery();
     const mis = db.historial.filter(x => x.usuario === c.from.id);
@@ -336,7 +329,6 @@ bot.action('miskeys', c => {
     c.replyWithHTML(texto, Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver', 'menuprincipal')]]));
 });
 
-// ─── HISTORIAL ───
 bot.action('historial', c => {
     c.answerCbQuery();
     const mis = db.historial.filter(x => x.usuario === c.from.id);
@@ -346,14 +338,12 @@ bot.action('historial', c => {
     c.replyWithHTML(texto, Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver', 'menuprincipal')]]));
 });
 
-// ─── MI CUENTA CON SALDO ───
 bot.action('micuenta', c => {
     c.answerCbQuery();
     const usuario = db.users.get(c.from.id);
     c.replyWithHTML(`👤 <b>MI CUENTA</b>\n\n🆔 ID: <code>${c.from.id}</code>\n👤 Nombre: ${c.from.first_name}\n💰 Saldo: $${(usuario?.saldo || 0).toFixed(2)} USD`, Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver', 'menuprincipal')]]));
 });
 
-// ─── OTROS BOTONES DEL PANEL ───
 bot.action('quitaradmin', c => { c.answerCbQuery(); c.replyWithHTML(`🗑️ Escribe:\n/quitaradmin ID`, Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver', 'admin')]])); });
 bot.action('agregarvip', c => { c.answerCbQuery(); c.replyWithHTML(`⭐ Escribe:\n/agregarvip ID DIAS`, Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver', 'admin')]])); });
 bot.action('editarstock', c => { c.answerCbQuery(); c.replyWithHTML(`✏️ Escribe:\n/editardstock PRODUCTO DURACIÓN`, Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver', 'admin')]])); });
@@ -363,4 +353,3 @@ bot.action('generarllaves', c => { c.answerCbQuery(); c.replyWithHTML(`🔑 Escr
 bot.action('avisogeneral', c => { c.answerCbQuery(); c.replyWithHTML(`📢 Escribe:\n/avisogeneral Tu mensaje`, Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver', 'admin')]])); });
 
 bot.launch().then(() => console.log('✅ ENCENDIDO'));
-                      
