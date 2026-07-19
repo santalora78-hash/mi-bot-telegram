@@ -1,67 +1,82 @@
 const { Telegraf, Markup } = require('telegraf');
 const http = require('http');
 
-const TOKEN = process.env.BOT_TOKEN || '8878480430:AAGnU3GWR2fpILcRfj3yTPCJRJ4JuGoHE58';
-const ADMIN_ID = 7677618980;
-const WHATSAPP_LINK = 'https://wa.me/+529241043399?text=Hola,%20quiero%20registrarme%20en%20el%20bot%20de%20telegram';
+// ⚙️ CONFIGURACIÓN — TU TOKEN YA PUESTO 👇
+const TOKEN = process.env.BOT_TOKEN || '8878480430:AAGnU3GWR2fplLcRfj3yTPCJRJ4JuGoHE58';
+const ADMIN_ID = 7677618980; // TU ID DE TELEGRAM
+const WHATSAPP_LINK = 'https://wa.me/+529241043399?text=Hola,%20quiero%20comprar%20una%20key';
+
+// 🖼️ ENLACE DE TU IMAGEN DE DRIP CLIENT (déjalo vacío por ahora)
+const IMAGEN_DRIP_CLIENT = "";
 
 const bot = new Telegraf(TOKEN);
 
-// ─── SEGURIDAD ───
-const intentosFallidos = new Map();
-const BLOQUEO_TIEMPO = 5 * 60 * 1000;
-
+// ─── BASE DE DATOS ───
 const db = {
     users: new Map(),
+    stocks: new Map(),
     admins: new Set([ADMIN_ID]),
-    sesiones: new Map()
+    sesiones: new Map(),
+    historial: []
 };
 
-// ─── PRODUCTOS Y PRECIOS ───
+// ─── PRECIOS ACTUALIZADOS ───
 const productos = {
-    'drip_client': {
-        nombre: 'DRIP CLIENT APKMOD',
+    'drip_client': { 
+        nombre: 'DRIP CLIENT', 
+        precios: { '1d': 0.90, '7d': 4.00, '30d': 9.00 },
+        imagen: IMAGEN_DRIP_CLIENT
+    },
+    'hg_cheats': { 
+        nombre: 'HG CHEATS', 
+        precios: { '1d': 1.00, '10d': 5.00, '30d': 9.00 }
+    },
+    'prime_hook': { 
+        nombre: 'PRIME HOOK', 
+        precios: { '1d': 0.90, '7d': 4.00, '21d': 9.00 }
+    },
+    'pato_team': { 
+        nombre: 'PATO TEAM', 
         precios: { '1d': 3, '7d': 8, '15d': 13, '30d': 17 }
     },
-    'hg_cheats': {
-        nombre: 'HG CHEATS APKMOD',
-        precios: { '1d': 2, '7d': 6, '15d': 12, '30d': 15 }
-    },
-    'prime_hook': {
-        nombre: 'PRIME HOOK APKMOD',
+    'cuban_proxy': { 
+        nombre: 'CUBAN PROXY', 
         precios: { '1d': 3, '7d': 8, '15d': 13, '30d': 17 }
     },
-    'pato_team': {
-        nombre: 'PATO TEAM APKMOD',
-        precios: { '1d': 3, '7d': 8, '15d': 13, '30d': 17 }
+    'drip_proxy': { 
+        nombre: 'DRIP CLIENT PROXY', 
+        precios: { '1d': 1.20, '7d': 4.00, '30d': 8.00 }
     },
-    'cuban_proxy': {
-        nombre: 'CUBAN PROXY APKMOD',
-        precios: { '1d': 3, '7d': 8, '15d': 13, '30d': 17 }
-    },
-    'drip_proxy': {
-        nombre: 'DRIP CLIENT PROXY APKMOD',
-        precios: { '1d': 3, '7d': 8, '15d': 13, '30d': 17 }
-    },
-    'netflix_proxy': {
-        nombre: 'NETFLIX PROXY APKMOD',
+    'netflix_proxy': { 
+        nombre: 'NETFLIX PROXY', 
         precios: { '1d': 3, '7d': 8, '15d': 13, '30d': 17 }
     }
 };
 
-// ─── PUERTO ───
-const server = http.createServer((req, res) => {
-  res.end('Bot encendido ✅');
-});
-server.listen(process.env.PORT || 3000, () => console.log('🌐 Puerto abierto'));
+const duraciones = {
+    '1d': '01 Día',
+    '7d': '07 Días',
+    '10d': '10 Días',
+    '15d': '15 Días',
+    '21d': '21 Días',
+    '30d': '30 Días'
+};
 
-// ─── MENÚ PRINCIPAL ───
+// ─── MANTENER BOT ACTIVO ───
+const server = http.createServer((req, res) => { 
+    res.end('ELITE SHOP BOT encendido ✅'); 
+});
+server.listen(process.env.PORT || 3000, () => console.log('🌐 Servidor activo'));
+
+// ─── MENÚ PRINCIPAL CLIENTES ───
 function menuPrincipal(ctx) {
     return ctx.replyWithHTML(
-        `✅ ¡Hola <b>${ctx.from.first_name}</b>!\n\nBienvenido al bot. Inicia sesión para continuar.`,
+        `✅ ¡Hola <b>${ctx.from.first_name}</b>!\n\nBienvenido a <b>ELITE SHOP BOT</b> 🛒`,
         Markup.inlineKeyboard([
             [Markup.button.callback('🛒 Comprar Keys', 'comprarkeys')],
-            [Markup.button.callback('👤 Mi Cuenta', 'micuenta'), Markup.button.callback('📩 Soporte', 'soporte')],
+            [Markup.button.callback('🎁 Mis Keys', 'miskeys'), Markup.button.callback('👤 Mi Cuenta', 'micuenta')],
+            [Markup.button.callback('📜 Historial de Compras', 'historial')],
+            [Markup.button.callback('📞 Soporte', 'soporte')],
             [Markup.button.callback('🔙 Volver al Menú Principal', 'menuprincipal')]
         ])
     );
@@ -70,127 +85,10 @@ function menuPrincipal(ctx) {
 bot.start((ctx) => menuPrincipal(ctx));
 bot.action('menuprincipal', (ctx) => { ctx.answerCbQuery(); menuPrincipal(ctx); });
 
-// ─── SOPORTE ───
-bot.command('soporte', (ctx) => {
-    ctx.replyWithHTML(
-        `📩 <b>SOPORTE Y REGISTRO</b> 📩\n\n` +
-        `¿No tienes cuenta aún? 🤔\n\n` +
-        `💡 Escríbeme por WhatsApp y te creo tu usuario al instante:\n` +
-        `👤 Usuario + 🔐 Contraseña listos en minutos ⚡\n\n` +
-        `👇 <b>TOCA AQUÍ</b> 👇\n` +
-        `🔗 <a href="${WHATSAPP_LINK}">💬 Escríbeme por WhatsApp</a>\n\n` +
-        `✉️ El mensaje ya viene escrito:\n` +
-        `<i>"Hola, quiero registrarme en el bot de telegram"</i> 📝`,
-        Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver al Menú Principal', 'menuprincipal')]])
-    );
-});
-
-bot.action('soporte', (ctx) => {
-    ctx.answerCbQuery();
-    ctx.replyWithHTML(
-        `📩 <b>SOPORTE Y REGISTRO</b> 📩\n\n` +
-        `¿No tienes cuenta aún? 🤔\n\n` +
-        `💡 Escríbeme por WhatsApp y te creo tu usuario al instante:\n` +
-        `👤 Usuario + 🔐 Contraseña listos en minutos ⚡\n\n` +
-        `👇 <b>TOCA AQUÍ</b> 👇\n` +
-        `🔗 <a href="${WHATSAPP_LINK}">💬 Escríbeme por WhatsApp</a>\n\n` +
-        `✉️ El mensaje ya viene escrito:\n` +
-        `<i>"Hola, quiero registrarme en el bot de telegram"</i> 📝`,
-        Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver al Menú Principal', 'menuprincipal')]])
-    );
-});
-
-// ─── LOGIN ───
-bot.command('login', (ctx) => {
-    const userId = ctx.from.id;
-    
-    if (intentosFallidos.has(userId) && Date.now() < intentosFallidos.get(userId)) {
-        return ctx.replyWithHTML(
-            `❌ <b>DEMASIADOS INTENTOS FALLIDOS</b> ⚠️\n\nInténtalo de nuevo en 5 minutos.`,
-            Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver al Menú Principal', 'menuprincipal')]])
-        );
-    }
-
-    const texto = ctx.message.text.substring(6).trim();
-    const partes = texto.split(' ');
-    const usuario = partes[0];
-    const contraseña = partes[1];
-
-    if (!usuario || !contraseña) {
-        return ctx.replyWithHTML(
-            `🔐 <b>INICIAR SESIÓN</b>\n\nEscribe así:\n/login usuario contraseña`,
-            Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver al Menú Principal', 'menuprincipal')]])
-        );
-    }
-
-    if (!db.users.has(usuario)) {
-        let intentos = intentosFallidos.get(userId)?.intentos || 0;
-        intentos++;
-        if (intentos >= 5) {
-            intentosFallidos.set(userId, Date.now() + BLOQUEO_TIEMPO);
-            return ctx.replyWithHTML(
-                `❌ <b>USUARIO NO REGISTRADO</b> ❌\n\n` +
-                `⚠️ Este usuario no existe en nuestro sistema.\n\n` +
-                `💬 <b>PARA CREAR TU CUENTA:</b>\n` +
-                `📱 Escríbeme por WhatsApp y te doy acceso rápido 🚀\n\n` +
-                `👇 <b>TOCA AQUÍ</b> 👇\n` +
-                `🔗 <a href="${WHATSAPP_LINK}">💬 Escríbeme por WhatsApp</a>\n\n` +
-                `✉️ El mensaje se envía automáticamente ✅\n\nIntentos: ${intentos}/5`,
-                Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver al Menú Principal', 'menuprincipal')]])
-            );
-        }
-        intentosFallidos.set(userId, { intentos });
-        return ctx.replyWithHTML(
-            `❌ <b>USUARIO NO REGISTRADO</b> ❌\n\n` +
-            `⚠️ Este usuario no existe en nuestro sistema.\n\n` +
-            `💬 <b>PARA CREAR TU CUENTA:</b>\n` +
-            `📱 Escríbeme por WhatsApp y te doy acceso rápido 🚀\n\n` +
-            `👇 <b>TOCA AQUÍ</b> 👇\n` +
-            `🔗 <a href="${WHATSAPP_LINK}">💬 Escríbeme por WhatsApp</a>\n\n` +
-            `✉️ El mensaje se envía automáticamente ✅\n\nIntentos: ${intentos}/5`,
-            Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver al Menú Principal', 'menuprincipal')]])
-        );
-    }
-
-    const datos = db.users.get(usuario);
-    if (datos.contraseña !== contraseña) {
-        let intentos = intentosFallidos.get(userId)?.intentos || 0;
-        intentos++;
-        if (intentos >= 5) {
-            intentosFallidos.set(userId, Date.now() + BLOQUEO_TIEMPO);
-            return ctx.replyWithHTML(
-                `❌ <b>CONTRASEÑA INCORRECTA</b> ❌\n\nBloqueado por 5 minutos.`,
-                Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver al Menú Principal', 'menuprincipal')]])
-            );
-        }
-        intentosFallidos.set(userId, { intentos });
-        return ctx.replyWithHTML(
-            `❌ <b>CONTRASEÑA INCORRECTA</b> ❌\n\nIntentos: ${intentos}/5`,
-            Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver al Menú Principal', 'menuprincipal')]])
-        );
-    }
-
-    intentosFallidos.delete(userId);
-    db.sesiones.set(userId, { usuario, activa: true });
-    ctx.replyWithHTML(
-        `✅ <b>¡BIENVENIDO ${usuario}!</b> 🎉\n\nSesión iniciada correctamente.`,
-        Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver al Menú Principal', 'menuprincipal')]])
-    );
-});
-
-// ─── COMPRAR KEYS — LISTA DE PRODUCTOS ───
+// ─── COMPRAR KEYS ───
 function mostrarProductos(ctx) {
     ctx.replyWithHTML(
-        `🎁 <b>COMPRAR KEYS</b> 🎁\n\nElige el producto que quieres comprar:\n\n` +
-        `━━━━━━━━━━━━━━━━━━━━\n` +
-        `📱 DRIP CLIENT APKMOD\n` +
-        `📱 HG CHEATS APKMOD\n` +
-        `📱 PRIME HOOK APKMOD\n` +
-        `📱 PATO TEAM APKMOD\n` +
-        `📱 CUBAN PROXY APKMOD\n` +
-        `📱 DRIP CLIENT PROXY APKMOD\n` +
-        `📱 NETFLIX PROXY APKMOD\n` +
-        `━━━━━━━━━━━━━━━━━━━━`,
+        `📦 <b>PRODUCTOS DISPONIBLES</b> 🔥\nSelecciona el artículo específico que deseas:`,
         Markup.inlineKeyboard([
             [Markup.button.callback('📱 DRIP CLIENT', 'prod_drip_client')],
             [Markup.button.callback('📱 HG CHEATS', 'prod_hg_cheats')],
@@ -203,31 +101,50 @@ function mostrarProductos(ctx) {
         ])
     );
 }
-
-bot.command('comprarkeys', mostrarProductos);
 bot.action('comprarkeys', (ctx) => { ctx.answerCbQuery(); mostrarProductos(ctx); });
 
-// ─── MOSTRAR PRECIOS DE CADA PRODUCTO ───
-function mostrarPrecios(ctx, prodKey) {
+// ─── MOSTRAR PRECIOS ───
+async function mostrarPrecios(ctx, prodKey) {
     const prod = productos[prodKey];
-    ctx.replyWithHTML(
-        `📱 <b>${prod.nombre}</b>\n\n` +
-        `⏳ 1 Día    →   $${prod.precios['1d']} USD\n` +
-        `⏳ 7 Días   →   $${prod.precios['7d']} USD\n` +
-        `⏳ 15 Días  →  $${prod.precios['15d']} USD\n` +
-        `⏳ 30 Días  →  $${prod.precios['30d']} USD\n\nElige la duración:`,
-        Markup.inlineKeyboard([
-            [Markup.button.callback(`⏳ 1 Día - $${prod.precios['1d']}`, `buy_${prodKey}_1d`)],
-            [Markup.button.callback(`⏳ 7 Días - $${prod.precios['7d']}`, `buy_${prodKey}_7d`)],
-            [Markup.button.callback(`⏳ 15 Días - $${prod.precios['15d']}`, `buy_${prodKey}_15d`)],
-            [Markup.button.callback(`⏳ 30 Días - $${prod.precios['30d']}`, `buy_${prodKey}_30d`)],
-            [Markup.button.callback('🔙 Volver a Productos', 'comprarkeys')],
-            [Markup.button.callback('🔙 Volver al Menú Principal', 'menuprincipal')]
-        ])
-    );
+    const duracionesDisponibles = Object.keys(prod.precios);
+    
+    let texto = `📦 <b>${prod.nombre}</b>\n\n⏳ <b>SELECCIONA LA DURACIÓN DE TU LICENCIA:</b>\n\n`;
+    texto += `━━━━━━━━━━━━━━━━━━━━\n`;
+    
+    const teclado = [];
+    for (const dur of duracionesDisponibles) {
+        const stockKey = `${prodKey}_${dur}`;
+        const stock = db.stocks.get(stockKey)?.length || 0;
+        texto += `⏳ ${duraciones[dur]}   │   $${prod.precios[dur]} USD ${stock === 0 ? '❌ SIN STOCK' : '✅'}\n`;
+        texto += `━━━━━━━━━━━━━━━━━━━━\n`;
+        if (stock > 0) {
+            teclado.push(Markup.button.callback(`⏳ ${duraciones[dur]} - $${prod.precios[dur]}`, `buy_${prodKey}_${dur}`));
+        }
+    }
+
+    const botones = [];
+    for (let i = 0; i < teclado.length; i += 2) {
+        botones.push(teclado.slice(i, i + 2));
+    }
+    botones.push([Markup.button.callback('🔙 Volver a Productos', 'comprarkeys')]);
+    botones.push([Markup.button.callback('🔙 Volver al Menú Principal', 'menuprincipal')]);
+
+    if (prod.imagen && prod.imagen !== "") {
+        try {
+            await ctx.replyWithPhoto(prod.imagen, {
+                caption: texto,
+                parse_mode: 'HTML',
+                ...Markup.inlineKeyboard(botones)
+            });
+            return;
+        } catch (e) {
+            console.log('No se pudo cargar la imagen');
+        }
+    }
+
+    ctx.replyWithHTML(texto, Markup.inlineKeyboard(botones));
 }
 
-// Botones de productos
 bot.action('prod_drip_client', (ctx) => { ctx.answerCbQuery(); mostrarPrecios(ctx, 'drip_client'); });
 bot.action('prod_hg_cheats', (ctx) => { ctx.answerCbQuery(); mostrarPrecios(ctx, 'hg_cheats'); });
 bot.action('prod_prime_hook', (ctx) => { ctx.answerCbQuery(); mostrarPrecios(ctx, 'prime_hook'); });
@@ -236,125 +153,211 @@ bot.action('prod_cuban_proxy', (ctx) => { ctx.answerCbQuery(); mostrarPrecios(ct
 bot.action('prod_drip_proxy', (ctx) => { ctx.answerCbQuery(); mostrarPrecios(ctx, 'drip_proxy'); });
 bot.action('prod_netflix_proxy', (ctx) => { ctx.answerCbQuery(); mostrarPrecios(ctx, 'netflix_proxy'); });
 
-// Confirmación de compra
-bot.action(/^buy_(.+)_(.+)$/, (ctx) => {
+// ─── COMPRAR Y RECIBIR KEY AUTOMÁTICA ───
+bot.action(/^buy_(.+)_(.+)$/, async (ctx) => {
     ctx.answerCbQuery();
     const match = ctx.callbackQuery.data.match(/^buy_(.+)_(.+)$/);
-    const prodKey = match[1];
-    const duracion = match[2];
+    const prodKey = match[1], duracion = match[2];
     const prod = productos[prodKey];
-    
-    const diasTexto = duracion === '1d' ? '1 Día' : duracion === '7d' ? '7 Días' : duracion === '15d' ? '15 Días' : '30 Días';
-    
+    const stockKey = `${prodKey}_${duracion}`;
+    const stock = db.stocks.get(stockKey) || [];
+
+    if (stock.length === 0) {
+        return ctx.replyWithHTML(`❌ <b>PRODUCTO NO DISPONIBLE</b> ⚠️\n\nSin stocks por el momento.\nVuelve más tarde o consulta al soporte.`, Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver a Productos', 'comprarkeys')]]));
+    }
+
+    const key = stock.shift();
+    db.stocks.set(stockKey, stock);
+
+    db.historial.push({
+        usuario: ctx.from.id,
+        nombre: ctx.from.first_name,
+        producto: prod.nombre,
+        duracion: duraciones[duracion],
+        precio: prod.precios[duracion],
+        key: key,
+        fecha: new Date().toLocaleDateString('es-MX')
+    });
+
     ctx.replyWithHTML(
-        `✅ <b>¡SOLICITUD ENVIADA!</b> 🎉\n\n` +
-        `📱 Producto: ${prod.nombre}\n` +
-        `⏳ Duración: ${diasTexto}\n` +
+        `✅ <b>¡COMPRA EXITOSA!</b> 🎉\n\n` +
+        `📦 ${prod.nombre}\n` +
+        `⏳ ${duraciones[duracion]}\n` +
         `💰 Precio: $${prod.precios[duracion]} USD\n\n` +
-        `💬 Para pagar y recibir tu key, escríbeme por WhatsApp:`,
+        `🔑 <b>TU KEY:</b> <code>${key}</code>\n\n` +
+        `⚠️ ¡GUÁRDALA BIEN! ⚠️`,
         Markup.inlineKeyboard([
             [Markup.button.url('💬 Pagar por WhatsApp', WHATSAPP_LINK)],
+            [Markup.button.callback('🎁 Mis Keys', 'miskeys')],
             [Markup.button.callback('🔙 Volver al Menú Principal', 'menuprincipal')]
         ])
     );
 });
 
-// ─── MI CUENTA ───
-bot.action('micuenta', (ctx) => {
-    ctx.answerCbQuery();
-    const sesion = db.sesiones.get(ctx.from.id);
-    if (!sesion || !sesion.activa) {
-        return ctx.replyWithHTML(
-            `❌ No tienes sesión abierta. Usa /login`,
-            Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver al Menú Principal', 'menuprincipal')]])
-        );
+// ─── AGREGAR STOCK (SOLO ADMIN) ───
+bot.command('agregarstocks', (ctx) => {
+    if (!db.admins.has(ctx.from.id)) return;
+    
+    const textoCompleto = ctx.message.text.substring(15).trim();
+    const lineas = textoCompleto.split('\n').map(l => l.trim()).filter(l => l);
+    
+    if (lineas.length < 2) {
+        return ctx.replyWithHTML(`❌ <b>FORMATO INCORRECTO</b> ⚠️\n\nEscribe así:\n/agregarstocks DRIP CLIENT 1D\n18276292\n19837373\n19288388`, Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver al Panel de Admin', 'admin')]]));
     }
-    const datos = db.users.get(sesion.usuario);
-    ctx.replyWithHTML(
-        `👤 <b>MI CUENTA</b>\n\n` +
-        `Usuario: ${sesion.usuario}\n` +
-        `Saldo: ${datos.saldo}\n` +
-        `Estado: ${datos.vip ? '⭐ VIP' : 'Usuario normal'}`,
-        Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver al Menú Principal', 'menuprincipal')]])
-    );
+
+    const header = lineas[0].toUpperCase();
+    let prodKey = null, durKey = null;
+
+    if (header.includes('DRIP CLIENT')) prodKey = 'drip_client';
+    else if (header.includes('HG CHEATS')) prodKey = 'hg_cheats';
+    else if (header.includes('PRIME HOOK')) prodKey = 'prime_hook';
+    else if (header.includes('PATO TEAM')) prodKey = 'pato_team';
+    else if (header.includes('CUBAN PROXY')) prodKey = 'cuban_proxy';
+    else if (header.includes('DRIP CLIENT PROXY') || header.includes('DRIP PROXY')) prodKey = 'drip_proxy';
+    else if (header.includes('NETFLIX PROXY')) prodKey = 'netflix_proxy';
+
+    if (!prodKey) return ctx.reply('❌ Producto no reconocido');
+
+    if (header.includes('1D')) durKey = '1d';
+    else if (header.includes('7D')) durKey = '7d';
+    else if (header.includes('10D')) durKey = '10d';
+    else if (header.includes('15D')) durKey = '15d';
+    else if (header.includes('21D')) durKey = '21d';
+    else if (header.includes('30D')) durKey = '30d';
+
+    if (!durKey) return ctx.reply('❌ Duración no reconocida. Usa: 1D, 7D, 10D, 15D, 21D o 30D');
+
+    const stockKey = `${prodKey}_${durKey}`;
+    const nuevasKeys = lineas.slice(1).filter(k => k.length > 0);
+    
+    if (!db.stocks.has(stockKey)) db.stocks.set(stockKey, []);
+    const stockActual = db.stocks.get(stockKey);
+    nuevasKeys.forEach(k => stockActual.push(k));
+    db.stocks.set(stockKey, stockActual);
+
+    let respuesta = `✅ <b>${nuevasKeys.length} KEYS AGREGADAS</b> 🎉\n\n` +
+        `📦 ${productos[prodKey].nombre} — ${duraciones[durKey]}\n` +
+        `━━━━━━━━━━━━━━━━━━━━\n`;
+    nuevasKeys.forEach((k, i) => respuesta += `🔑 ${k}\n`);
+    respuesta += `━━━━━━━━━━━━━━━━━━━━\n✅ Total en stock: ${stockActual.length} keys`;
+
+    ctx.replyWithHTML(respuesta, Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver al Panel de Admin', 'admin')]]));
 });
 
 // ─── PANEL DE ADMIN ───
 bot.command('admin', (ctx) => {
     if (!db.admins.has(ctx.from.id)) return ctx.reply('❌ No tienes permiso');
     ctx.replyWithHTML(
-        `✨ <b>PANEL DE ADMINISTRADOR</b> ✨\n\n🔒 Tu cuenta está PROTEGIDA\n✨ PORTAL ARCEUS 🚀`,
+        `✨ <b>PANEL DE ADMINISTRADOR</b> ✨\n\n🔒 Tu cuenta está PROTEGIDA\n✨ ELITE SHOP BOT 🚀`,
         Markup.inlineKeyboard([
-            [Markup.button.callback('👤 Crear Usuario', 'crearusuario'), Markup.button.callback('⭐ Agregar VIP', 'agregarvip')],
-            [Markup.button.callback('👥 Ver Usuarios', 'verusuarios'), Markup.button.callback('📊 Total Usuarios', 'totalusuarios')],
+            [Markup.button.callback('📦 Agregar Stock', 'agregarstock_menu'), Markup.button.callback('📦 Ver Stocks', 'verstocks')],
             [Markup.button.callback('📢 Aviso General', 'avisogeneral')],
             [Markup.button.callback('🔙 Volver al Menú Principal', 'menuprincipal')]
         ])
     );
 });
 
-bot.command('crearusuario', (ctx) => {
-    if (!db.admins.has(ctx.from.id)) return;
-    const texto = ctx.message.text.substring(13).trim();
-    const matchUser = texto.match(/user:\s*(\S+)/i);
-    const matchPass = texto.match(/contraseña:\s*(\S+)/i);
-    if (!matchUser || !matchPass) return ctx.replyWithHTML(`❌ <b>FORMATO INCORRECTO</b> ⚠️\n\nEscribe así:\n/crearusuario\nuser:nombre\ncontraseña:tucontraseña`, Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver al Menú Principal', 'menuprincipal')]]));
-    const usuario = matchUser[1], contraseña = matchPass[1];
-    if (db.users.has(usuario)) return ctx.reply('❌ Este usuario ya existe');
-    db.users.set(usuario, { contraseña, saldo: 0, vip: false });
-    ctx.replyWithHTML(`✅ <b>USUARIO CREADO</b> 🎉\n\n👤 Usuario: ${usuario}\n🔐 Contraseña: ${contraseña}`, Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver al Menú Principal', 'menuprincipal')]]));
-});
-
-bot.command('agregarvip', (ctx) => {
-    if (!db.admins.has(ctx.from.id)) return;
-    const texto = ctx.message.text.substring(12).trim();
-    const matchUser = texto.match(/user:\s*(\S+)/i);
-    const matchPass = texto.match(/contraseña:\s*(\S+)/i);
-    const matchSaldo = texto.match(/saldo:\s*(\d+)/i);
-    if (!matchUser || !matchPass || !matchSaldo) return ctx.replyWithHTML(`❌ <b>FORMATO INCORRECTO</b> ⚠️\n\nEscribe así:\n/agregarvip\nuser:nombre\ncontraseña:clave\nsaldo:10`, Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver al Menú Principal', 'menuprincipal')]]));
-    const usuario = matchUser[1], contraseña = matchPass[1], saldo = parseInt(matchSaldo[1]);
-    if (db.users.has(usuario)) return ctx.reply('❌ Este usuario ya existe');
-    db.users.set(usuario, { contraseña, saldo, vip: true });
-    ctx.replyWithHTML(`✅ <b>USUARIO VIP CREADO</b> 🎉\n\n👤 Usuario: ${usuario}\n🔐 Contraseña: ${contraseña}\n⭐ VIP ACTIVO\n💰 Saldo: ${saldo}`, Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver al Menú Principal', 'menuprincipal')]]));
-});
-
-bot.command('avisogeneral', (ctx) => {
-    if (!db.admins.has(ctx.from.id)) return;
-    const match = ctx.message.text.substring(14).trim().match(/¡(.+)!/);
-    if (!match) return ctx.replyWithHTML(`❌ <b>FORMATO INCORRECTO</b> ⚠️\n\nEscribe así:\n/avisogeneral ¡Tu mensaje aquí!`, Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver al Menú Principal', 'menuprincipal')]]));
-    const mensaje = match[1];
-    let enviados = 0;
-    db.sesiones.forEach((datos, userId) => {
-        if (datos.activa) ctx.telegram.sendMessage(userId, `📢 <b>AVISO GENERAL</b>\n\n${mensaje}`, { parse_mode: 'HTML' }).then(() => enviados++);
-    });
-    ctx.replyWithHTML(`✅ Aviso enviado a ${enviados} usuarios 📢`, Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver al Menú Principal', 'menuprincipal')]]));
-});
-
-bot.action('verusuarios', (ctx) => {
+bot.action('agregarstock_menu', (ctx) => {
     ctx.answerCbQuery();
+    ctx.replyWithHTML(
+        `📦 <b>AGREGAR STOCK</b> 📦\n\nElige el producto:`,
+        Markup.inlineKeyboard([
+            [Markup.button.callback('📱 DRIP CLIENT', 'stock_drip_client')],
+            [Markup.button.callback('📱 HG CHEATS', 'stock_hg_cheats')],
+            [Markup.button.callback('📱 PRIME HOOK', 'stock_prime_hook')],
+            [Markup.button.callback('📱 PATO TEAM', 'stock_pato_team')],
+            [Markup.button.callback('📱 CUBAN PROXY', 'stock_cuban_proxy')],
+            [Markup.button.callback('📱 DRIP CLIENT PROXY', 'stock_drip_proxy')],
+            [Markup.button.callback('📱 NETFLIX PROXY', 'stock_netflix_proxy')],
+            [Markup.button.callback('🔙 Volver al Panel de Admin', 'admin')]
+        ])
+    );
+});
+
+function menuDuracionStock(ctx, prodKey) {
+    const prod = productos[prodKey];
+    const duracionesDisponibles = Object.keys(prod.precios);
+    const botones = duracionesDisponibles.map(dur => 
+        [Markup.button.callback(`⏳ ${duraciones[dur]}`, `stockdur_${prodKey}_${dur}`)]
+    );
+    botones.push([Markup.button.callback('🔙 Volver a Productos', 'agregarstock_menu')]);
+    botones.push([Markup.button.callback('🔙 Volver al Panel de Admin', 'admin')]);
+
+    ctx.replyWithHTML(
+        `📦 <b>${productos[prodKey].nombre}</b>\n\nElige la duración:`,
+        Markup.inlineKeyboard(botones)
+    );
+}
+
+bot.action('stock_drip_client', (ctx) => { ctx.answerCbQuery(); menuDuracionStock(ctx, 'drip_client'); });
+bot.action('stock_hg_cheats', (ctx) => { ctx.answerCbQuery(); menuDuracionStock(ctx, 'hg_cheats'); });
+bot.action('stock_prime_hook', (ctx) => { ctx.answerCbQuery(); menuDuracionStock(ctx, 'prime_hook'); });
+bot.action('stock_pato_team', (ctx) => { ctx.answerCbQuery(); menuDuracionStock(ctx, 'pato_team'); });
+bot.action('stock_cuban_proxy', (ctx) => { ctx.answerCbQuery(); menuDuracionStock(ctx, 'cuban_proxy'); });
+bot.action('stock_drip_proxy', (ctx) => { ctx.answerCbQuery(); menuDuracionStock(ctx, 'drip_proxy'); });
+bot.action('stock_netflix_proxy', (ctx) => { ctx.answerCbQuery(); menuDuracionStock(ctx, 'netflix_proxy'); });
+
+bot.action(/^stockdur_(.+)_(.+)$/, (ctx) => {
+    ctx.answerCbQuery();
+    const match = ctx.callbackQuery.data.match(/^stockdur_(.+)_(.+)$/);
+    const prodKey = match[1], durKey = match[2];
+    const durTexto = durKey === '1d' ? '1D' : durKey === '7d' ? '7D' : durKey === '10d' ? '10D' : durKey === '15d' ? '15D' : durKey === '21d' ? '21D' : '30D';
+    
+    ctx.replyWithHTML(
+        `📦 <b>AGREGAR STOCK — ${productos[prodKey].nombre} (${duraciones[durKey]})</b>\n\nEscribe las keys una debajo de otra así:\n\n/agregarstocks ${productos[prodKey].nombre} ${durTexto}\n18276292\n19837373\n19288388`,
+        Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver a Duraciones', `stock_${prodKey}`)]])
+    );
+});
+
+bot.command('verstocks', (ctx) => {
     if (!db.admins.has(ctx.from.id)) return;
-    if (db.users.size === 0) return ctx.reply('❌ No hay usuarios');
-    let texto = '👥 <b>LISTA DE USUARIOS</b>\n\n';
-    db.users.forEach((datos, user) => texto += `👤 ${user} | Saldo: ${datos.saldo} | ${datos.vip ? '⭐ VIP' : 'Usuario'}\n`);
+    let texto = '📦 <b>STOCK DE PRODUCTOS</b> 📦\n\n';
+    db.stocks.forEach((keys, clave) => {
+        const [prodKey, durKey] = clave.split('_');
+        if (keys.length > 0) {
+            texto += `━━━━━━━━━━━━━━━━━━━━\n📦 ${productos[prodKey]?.nombre || prodKey} — ${duraciones[durKey]}\n📊 Cantidad: ${keys.length} keys\n`;
+        }
+    });
+    if (texto === '📦 <b>STOCK DE PRODUCTOS</b> 📦\n\n') texto += '❌ No hay keys en stock';
+    ctx.replyWithHTML(texto, Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver al Panel de Admin', 'admin')]]));
+});
+bot.action('verstocks', (ctx) => { ctx.answerCbQuery(); ctx.command('verstocks'); });
+
+bot.action('miskeys', (ctx) => {
+    ctx.answerCbQuery();
+    const misCompras = db.historial.filter(c => c.usuario === ctx.from.id);
+    if (misCompras.length === 0) {
+        return ctx.replyWithHTML(`🎁 <b>MIS KEYS</b>\n\n❌ No tienes keys compradas aún.`, Markup.inlineKeyboard([[Markup.button.callback('🛒 Comprar Keys', 'comprarkeys')], [Markup.button.callback('🔙 Volver al Menú Principal', 'menuprincipal')]]));
+    }
+    let texto = `🎁 <b>MIS KEYS</b>\n\n`;
+    misCompras.forEach(c => {
+        texto += `━━━━━━━━━━━━━━━━━━━━\n📦 ${c.producto}\n⏳ ${c.duracion}\n🔑 <code>${c.key}</code>\n📅 ${c.fecha}\n`;
+    });
     ctx.replyWithHTML(texto, Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver al Menú Principal', 'menuprincipal')]]));
 });
 
-bot.action('totalusuarios', (ctx) => {
+bot.action('historial', (ctx) => {
     ctx.answerCbQuery();
-    if (!db.admins.has(ctx.from.id)) return;
-    ctx.replyWithHTML(`📊 <b>TOTAL USUARIOS:</b> ${db.users.size}`, Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver al Menú Principal', 'menuprincipal')]]));
+    const misCompras = db.historial.filter(c => c.usuario === ctx.from.id);
+    if (misCompras.length === 0) {
+        return ctx.replyWithHTML(`📜 <b>HISTORIAL DE COMPRAS</b>\n\n❌ No tienes compras aún.`, Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver al Menú Principal', 'menuprincipal')]]));
+    }
+    let texto = `📜 <b>HISTORIAL DE COMPRAS</b>\n\n`;
+    misCompras.forEach(c => {
+        texto += `📅 ${c.fecha} — ${c.producto} — $${c.precio} USD\n🔑 ${c.key}\n\n`;
+    });
+    ctx.replyWithHTML(texto, Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver al Menú Principal', 'menuprincipal')]]));
 });
 
-bot.action('crearusuario', (ctx) => { ctx.answerCbQuery(); ctx.replyWithHTML(`👤 <b>CREAR USUARIO</b>\n\nEscribe así:\n/crearusuario\nuser:nombre\ncontraseña:clave`, Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver al Menú Principal', 'menuprincipal')]])); });
-bot.action('agregarvip', (ctx) => { ctx.answerCbQuery(); ctx.replyWithHTML(`⭐ <b>AGREGAR VIP</b>\n\nEscribe así:\n/agregarvip\nuser:nombre\ncontraseña:clave\nsaldo:10`, Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver al Menú Principal', 'menuprincipal')]])); });
-bot.action('avisogeneral', (ctx) => { ctx.answerCbQuery(); ctx.replyWithHTML(`📢 <b>AVISO GENERAL</b>\n\nEscribe así:\n/avisogeneral ¡Tu mensaje aquí!`, Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver al Menú Principal', 'menuprincipal')]])); });
-
-bot.catch((err, ctx) => {
-    console.log('Error:', err.message);
-    ctx.replyWithHTML(`❌ Ocurrió un error. Inténtalo de nuevo.`, Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver al Menú Principal', 'menuprincipal')]]));
+bot.action('micuenta', (ctx) => {
+    ctx.answerCbQuery();
+    ctx.replyWithHTML(`👤 <b>MI CUENTA</b>\n\n🆔 ID: <code>${ctx.from.id}</code>\n👤 Nombre: ${ctx.from.first_name}\n🤖 Bot: ELITE SHOP BOT`, Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver al Menú Principal', 'menuprincipal')]]));
 });
 
-bot.launch().then(() => console.log('✅ BOT ENCENDIDO 🟢'));
-process.once('SIGINT', () => bot.stop('SIGINT'));
-process.once('SIGTERM', () => bot.stop('SIGTERM'));
-        
+bot.action('soporte', (ctx) => {
+    ctx.answerCbQuery();
+    ctx.replyWithHTML(`📞 <b>SOPORTE</b>\n\n💬 Escríbenos por WhatsApp:\n${WHATSAPP_LINK}`, Markup.inlineKeyboard([[Markup.button.url('💬 Ir a WhatsApp', WHATSAPP_LINK)], [Markup.button.callback('🔙 Volver al Menú Principal', 'menuprincipal')]]));
+});
+
+bot.launch().then(() => console.log('✅ ELITE SHOP BOT ENCENDIDO 🟢'));
+            
