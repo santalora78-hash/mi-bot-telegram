@@ -159,27 +159,31 @@ bot.action('totalusuarios', c => {
     c.replyWithHTML(`📊 <b>TOTAL USUARIOS</b>\n\n👤 Total: ${db.users.size}\n✅ Activos: ${db.users.size - bloq}\n🔒 Bloqueados: ${bloq}`, Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver', 'admin')]]));
 });
 
-bot.action('comprarkeys', c => { c.answerCbQuery(); c.replyWithHTML(`🛒 <b>PRODUCTOS</b>`, Markup.inlineKeyboard([
-    [Markup.button.callback('📱 DRIP CLIENT', 'prod_drip_client')],
-    [Markup.button.callback('📱 HG CHEATS', 'prod_hg_cheats')],
-    [Markup.button.callback('📱 PRIME HOOK', 'prod_prime_hook')],
-    [Markup.button.callback('📱 PATO TEAM', 'prod_pato_team')],
-    [Markup.button.callback('📱 CUBAN PROXY', 'prod_cuban_proxy')],
-    [Markup.button.callback('📱 DRIP PROXY', 'prod_drip_proxy')],
-    [Markup.button.callback('📱 NETFLIX PROXY', 'prod_netflix_proxy')],
-    [Markup.button.callback('🔙 Volver', 'menuprincipal')]
-]))});
+bot.action('comprarkeys', c => { 
+    c.answerCbQuery(); 
+    c.replyWithHTML(`🛒 <b>PRODUCTOS</b>`, Markup.inlineKeyboard([
+        [Markup.button.callback('📱 DRIP CLIENT', 'prod_drip_client')],
+        [Markup.button.callback('📱 HG CHEATS', 'prod_hg_cheats')],
+        [Markup.button.callback('📱 PRIME HOOK', 'prod_prime_hook')],
+        [Markup.button.callback('📱 PATO TEAM', 'prod_pato_team')],
+        [Markup.button.callback('📱 CUBAN PROXY', 'prod_cuban_proxy')],
+        [Markup.button.callback('📱 DRIP PROXY', 'prod_drip_proxy')],
+        [Markup.button.callback('📱 NETFLIX PROXY', 'prod_netflix_proxy')],
+        [Markup.button.callback('🔙 Volver', 'menuprincipal')]
+    ]));
+});
 
-// ✅ AHORA APARECEN TODAS LAS OPCIONES SIEMPRE, TENGAN STOCK O NO
+// ✅ AHORA SÍ FUNCIONA AL TOCAR EL PRODUCTO
 bot.action(/^prod_(.+)$/, c => {
     c.answerCbQuery();
-    const p = c.callbackQuery.data.split('_')[1];
+    const p = c.callbackQuery.data.replace('prod_', '');
     const prod = productos[p];
     const saldo = db.users.get(c.from.id)?.saldo || 0;
+    
     let texto = `📦 <b>${prod.nombre}</b>\n💰 Tu saldo: $${saldo.toFixed(2)} USD\n\nElige duración:\n\n`;
     const botones = [];
     
-    // 🔄 TODAS LAS OPCIONES SIEMPRE, SIN IMPORTAR STOCK
+    // TODAS LAS OPCIONES SIEMPRE APARECEN
     for (const [d, precio] of Object.entries(prod.precios)) {
         const stock = db.stocks.get(`${p}_${d}`)?.length || 0;
         const estado = stock === 0 ? ' ❌ Sin stock' : '';
@@ -193,7 +197,9 @@ bot.action(/^prod_(.+)$/, c => {
 
 bot.action(/^buycheck_(.+)_(.+)$/, c => {
     c.answerCbQuery();
-    const [_, p, d] = c.callbackQuery.data.match(/^buycheck_(.+)_(.+)$/);
+    const match = c.callbackQuery.data.match(/^buycheck_(.+)_(.+)$/);
+    const p = match[1];
+    const d = match[2];
     const prod = productos[p];
     const precio = prod.precios[d];
     const usuario = db.users.get(c.from.id);
@@ -207,9 +213,9 @@ bot.action(/^buycheck_(.+)_(.+)$/, c => {
             `💰 Tu saldo: $${saldoActual.toFixed(2)} USD\n` +
             `💸 Precio: $${precio} USD\n` +
             `📉 Te faltan: $${(precio - saldoActual).toFixed(2)} USD\n\n` +
-            `💬 Pide al admin que te agregue saldo o paga por WhatsApp:`,
+            `💬 Pide al admin que te agregue saldo:`,
             Markup.inlineKeyboard([
-                [Markup.button.url('💬 Agregar Saldo — WhatsApp', WHATSAPP_LINK)],
+                [Markup.button.url('💬 WhatsApp', WHATSAPP_LINK)],
                 [Markup.button.callback('🔙 Volver', `prod_${p}`)]
             ])
         );
@@ -218,8 +224,7 @@ bot.action(/^buycheck_(.+)_(.+)$/, c => {
     if (stock.length === 0) {
         return c.replyWithHTML(
             `❌ <b>SIN STOCK</b>\n\n` +
-            `Lo sentimos, no hay llaves disponibles para esta duración.\n` +
-            `Vuelve más tarde o elige otra opción.`,
+            `No hay llaves disponibles.\nVuelve más tarde.`,
             Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver', `prod_${p}`)]])
         );
     }
@@ -243,8 +248,7 @@ bot.action(/^buycheck_(.+)_(.+)$/, c => {
         `⏳ ${duraciones[d]}\n` +
         `💸 Precio: $${precio} USD\n` +
         `💰 Saldo restante: $${usuario.saldo.toFixed(2)} USD\n\n` +
-        `🔑 <b>TU KEY:</b> <code>${key}</code>\n\n` +
-        `⚠️ ¡GUÁRDALA BIEN!`,
+        `🔑 <b>TU KEY:</b> <code>${key}</code>`,
         Markup.inlineKeyboard([
             [Markup.button.callback('🎁 Mis Keys', 'miskeys')],
             [Markup.button.callback('🔙 Volver al Menú', 'menuprincipal')]
@@ -353,3 +357,4 @@ bot.action('generarllaves', c => { c.answerCbQuery(); c.replyWithHTML(`🔑 Escr
 bot.action('avisogeneral', c => { c.answerCbQuery(); c.replyWithHTML(`📢 Escribe:\n/avisogeneral Tu mensaje`, Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver', 'admin')]])); });
 
 bot.launch().then(() => console.log('✅ ENCENDIDO'));
+        
