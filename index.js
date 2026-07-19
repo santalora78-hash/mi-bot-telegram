@@ -270,4 +270,4 @@ bot.action('generarllaves', c => { c.answerCbQuery(); c.replyWithHTML(`🔑 Escr
 bot.action('avisogeneral', c => { c.answerCbQuery(); c.replyWithHTML(`📢 Escribe:\n/avisogeneral Tu mensaje`, Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver', 'admin')]])); });
 
 bot.launch().then(() => console.log('✅ ENCENDIDO'));
-                                
+           
