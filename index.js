@@ -1,12 +1,12 @@
 const { Telegraf, Markup } = require('telegraf');
 const http = require('http');
 
-// ⚙️ CONFIGURACIÓN — TU TOKEN YA PUESTO 👇
+// ⚙️ CONFIGURACIÓN
 const TOKEN = process.env.BOT_TOKEN || '8878480430:AAGnU3GWR2fplLcRfj3yTPCJRJ4JuGoHE58';
 const ADMIN_ID = 7677618980; // TU ID DE TELEGRAM
 const WHATSAPP_LINK = 'https://wa.me/+529241043399?text=Hola,%20quiero%20comprar%20una%20key';
 
-// 🖼️ ENLACE DE TU IMAGEN DE DRIP CLIENT (déjalo vacío por ahora)
+// 🖼️ ENLACE DE TU IMAGEN DE DRIP CLIENT
 const IMAGEN_DRIP_CLIENT = "";
 
 const bot = new Telegraf(TOKEN);
@@ -244,12 +244,14 @@ bot.command('agregarstocks', (ctx) => {
     ctx.replyWithHTML(respuesta, Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver al Panel de Admin', 'admin')]]));
 });
 
-// ─── PANEL DE ADMIN ───
+// ─── PANEL DE ADMIN COMPLETO ───
 bot.command('admin', (ctx) => {
     if (!db.admins.has(ctx.from.id)) return ctx.reply('❌ No tienes permiso');
     ctx.replyWithHTML(
         `✨ <b>PANEL DE ADMINISTRADOR</b> ✨\n\n🔒 Tu cuenta está PROTEGIDA\n✨ ELITE SHOP BOT 🚀`,
         Markup.inlineKeyboard([
+            [Markup.button.callback('👤 Crear Usuario', 'crearusuario'), Markup.button.callback('⭐ Agregar VIP', 'agregarvip')],
+            [Markup.button.callback('👥 Ver Usuarios', 'verusuarios'), Markup.button.callback('📊 Total Usuarios', 'totalusuarios')],
             [Markup.button.callback('📦 Agregar Stock', 'agregarstock_menu'), Markup.button.callback('📦 Ver Stocks', 'verstocks')],
             [Markup.button.callback('📢 Aviso General', 'avisogeneral')],
             [Markup.button.callback('🔙 Volver al Menú Principal', 'menuprincipal')]
@@ -257,6 +259,7 @@ bot.command('admin', (ctx) => {
     );
 });
 
+// ─── MENÚ AGREGAR STOCK ───
 bot.action('agregarstock_menu', (ctx) => {
     ctx.answerCbQuery();
     ctx.replyWithHTML(
@@ -274,6 +277,7 @@ bot.action('agregarstock_menu', (ctx) => {
     );
 });
 
+// ─── SELECCIONAR DURACIÓN PARA STOCK ───
 function menuDuracionStock(ctx, prodKey) {
     const prod = productos[prodKey];
     const duracionesDisponibles = Object.keys(prod.precios);
@@ -297,6 +301,7 @@ bot.action('stock_cuban_proxy', (ctx) => { ctx.answerCbQuery(); menuDuracionStoc
 bot.action('stock_drip_proxy', (ctx) => { ctx.answerCbQuery(); menuDuracionStock(ctx, 'drip_proxy'); });
 bot.action('stock_netflix_proxy', (ctx) => { ctx.answerCbQuery(); menuDuracionStock(ctx, 'netflix_proxy'); });
 
+// ─── FORMATO PARA AGREGAR KEYS ───
 bot.action(/^stockdur_(.+)_(.+)$/, (ctx) => {
     ctx.answerCbQuery();
     const match = ctx.callbackQuery.data.match(/^stockdur_(.+)_(.+)$/);
@@ -309,6 +314,7 @@ bot.action(/^stockdur_(.+)_(.+)$/, (ctx) => {
     );
 });
 
+// ─── VER STOCKS ───
 bot.command('verstocks', (ctx) => {
     if (!db.admins.has(ctx.from.id)) return;
     let texto = '📦 <b>STOCK DE PRODUCTOS</b> 📦\n\n';
@@ -323,6 +329,36 @@ bot.command('verstocks', (ctx) => {
 });
 bot.action('verstocks', (ctx) => { ctx.answerCbQuery(); ctx.command('verstocks'); });
 
+// ─── OTRAS FUNCIONES DEL PANEL DE ADMIN ───
+bot.action('crearusuario', (ctx) => {
+    ctx.answerCbQuery();
+    ctx.replyWithHTML(`👤 <b>CREAR USUARIO</b>\n\nEscribe así:\n/crearusuario ID NOMBRE`, Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver al Panel de Admin', 'admin')]]));
+});
+
+bot.action('agregarvip', (ctx) => {
+    ctx.answerCbQuery();
+    ctx.replyWithHTML(`⭐ <b>AGREGAR VIP</b>\n\nEscribe así:\n/agregarvip ID DIAS`, Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver al Panel de Admin', 'admin')]]));
+});
+
+bot.action('verusuarios', (ctx) => {
+    ctx.answerCbQuery();
+    let texto = '👥 <b>LISTA DE USUARIOS</b>\n\n';
+    if (db.users.size === 0) texto += '❌ No hay usuarios registrados';
+    else db.users.forEach((u, id) => texto += `🆔 ${id} — ${u.nombre}\n`);
+    ctx.replyWithHTML(texto, Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver al Panel de Admin', 'admin')]]));
+});
+
+bot.action('totalusuarios', (ctx) => {
+    ctx.answerCbQuery();
+    ctx.replyWithHTML(`📊 <b>TOTAL DE USUARIOS</b>\n\n👤 Total: ${db.users.size} usuarios`, Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver al Panel de Admin', 'admin')]]));
+});
+
+bot.action('avisogeneral', (ctx) => {
+    ctx.answerCbQuery();
+    ctx.replyWithHTML(`📢 <b>AVISO GENERAL</b>\n\nEscribe así:\n/avisogeneral Tu mensaje aquí`, Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver al Panel de Admin', 'admin')]]));
+});
+
+// ─── MIS KEYS ───
 bot.action('miskeys', (ctx) => {
     ctx.answerCbQuery();
     const misCompras = db.historial.filter(c => c.usuario === ctx.from.id);
@@ -336,6 +372,7 @@ bot.action('miskeys', (ctx) => {
     ctx.replyWithHTML(texto, Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver al Menú Principal', 'menuprincipal')]]));
 });
 
+// ─── HISTORIAL ───
 bot.action('historial', (ctx) => {
     ctx.answerCbQuery();
     const misCompras = db.historial.filter(c => c.usuario === ctx.from.id);
@@ -349,6 +386,7 @@ bot.action('historial', (ctx) => {
     ctx.replyWithHTML(texto, Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver al Menú Principal', 'menuprincipal')]]));
 });
 
+// ─── OTRAS FUNCIONES ───
 bot.action('micuenta', (ctx) => {
     ctx.answerCbQuery();
     ctx.replyWithHTML(`👤 <b>MI CUENTA</b>\n\n🆔 ID: <code>${ctx.from.id}</code>\n👤 Nombre: ${ctx.from.first_name}\n🤖 Bot: ELITE SHOP BOT`, Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver al Menú Principal', 'menuprincipal')]]));
@@ -360,4 +398,4 @@ bot.action('soporte', (ctx) => {
 });
 
 bot.launch().then(() => console.log('✅ ELITE SHOP BOT ENCENDIDO 🟢'));
-            
+        
