@@ -21,12 +21,12 @@ const db = {
 bot.start((ctx) => {
     ctx.reply(`👋 ¡Bienvenido a 🎮 ELITE SHOP BOT!
 
-🔐 Necesitas iniciar sesión para entrar al menú principal.
+🔐 Necesitas iniciar sesión para entrar al menú.
 
 Escribe:
 /login
-user:
-contraseña:`);
+user:tu_nombre
+contraseña:tu_clave`);
 });
 
 // ─── INICIAR SESIÓN ───
@@ -38,22 +38,24 @@ bot.hears(/^\/login\s*user:(.+)\s*contraseña:(.+)$/i, (ctx) => {
     if (!datos || datos.contraseña !== contraseña) {
         return ctx.reply(`❌ Usuario o contraseña incorrectos.
 
-Vuelve a intentar:
+Vuelve a escribir:
 /login
 user:
 contraseña:`);
     }
 
     ctx.session.usuario = usuario;
+    
     const vendedor = db.vendedores.get(usuario);
-    const vendedorActivo = vendedor && new Date() < new Date(vendedor.vence);
+    const hoy = new Date();
+    const vence = vendedor ? new Date(vendedor.vence) : null;
+    const vendedorActivo = vendedor && hoy < vence;
 
     const botones = [
         [Markup.button.callback('🛒 Comprar Keys', 'comprar_keys')],
         [Markup.button.callback('🎁 Mis Keys', 'mis_keys')],
         [Markup.button.callback('👤 Mi Cuenta', 'mi_cuenta')],
-        [Markup.button.callback('📜 Historial', 'historial')],
-        [Markup.button.callback('🔙 Volver al Menú', 'menu_principal')]
+        [Markup.button.callback('📜 Historial', 'historial')]
     ];
 
     if (vendedorActivo) {
@@ -65,15 +67,15 @@ contraseña:`);
 💰 Tu saldo: $${datos.saldo || 0}.00 USD`, Markup.inlineKeyboard(botones));
 });
 
-// ─── NO SE PERMITE CREAR CUENTAS ───
+// ─── NO SE PUEDE REGISTRAR ───
 bot.command('registrar', (ctx) => {
-    ctx.reply(`❌ No puedes crear cuentas por tu cuenta.
-Contacta al administrador de 🎮 ELITE SHOP BOT para crear tu acceso.`);
+    ctx.reply(`❌ No puedes crear cuentas tú solo.
+Pídele al administrador de 🎮 ELITE SHOP BOT que te cree tu cuenta.`);
 });
 
 bot.command('nuevacuenta', (ctx) => {
     ctx.reply(`❌ No se permiten crear cuentas adicionales.
-Contacta al administrador de 🎮 ELITE SHOP BOT.`);
+Contacta al administrador.`);
 });
 
 // ─── PANEL DE VENDEDOR ───
@@ -131,7 +133,7 @@ ${ventas.map(k => `KEY:${k} VENDIDA`).join('\n')}`,
     );
 });
 
-// ─── MIS PRODUCTOS VENDEDOR ───
+// ─── MIS PRODUCTOS ───
 bot.action('mis_productos_vendedor', (ctx) => {
     const usuario = ctx.session.usuario;
     const productos = db.productosVendedor.get(usuario) || ['DRIP CLIENT', 'HG CHEATS'];
@@ -153,8 +155,7 @@ bot.action('menu_principal', (ctx) => {
         [Markup.button.callback('🛒 Comprar Keys', 'comprar_keys')],
         [Markup.button.callback('🎁 Mis Keys', 'mis_keys')],
         [Markup.button.callback('👤 Mi Cuenta', 'mi_cuenta')],
-        [Markup.button.callback('📜 Historial', 'historial')],
-        [Markup.button.callback('🔙 Volver al Menú', 'menu_principal')]
+        [Markup.button.callback('📜 Historial', 'historial')]
     ];
 
     if (vendedorActivo) {
@@ -196,9 +197,7 @@ Escribe así:
 
 /user:Juanito contraseña:12881
 DRIP CLIENT
-HG CHEATS`,
-        Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver', 'admin')]])
-    );
+HG CHEATS`, Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver', 'admin')]]));
 });
 
 bot.action('agregar_keys_vendedor_menu', (ctx) => {
@@ -214,18 +213,14 @@ coloca tus keys en línea 👇🏻
 
 187273737
 172727373
-187274701`,
-        Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver', 'admin')]])
-    );
+187274701`, Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver', 'admin')]]));
 });
 
 bot.action('activar_vendedor_menu', (ctx) => {
     ctx.editMessageText(`✅ ACTIVAR VENDEDOR
 
 Escribe así:
-/activarvendedor user:Juanito contraseña:12881`,
-        Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver', 'admin')]])
-    );
+/activarvendedor user:Juanito contraseña:12881`, Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver', 'admin')]]));
 });
 
 // ─── COMANDOS DE ADMINISTRADOR ───
@@ -262,7 +257,7 @@ bot.command('activarvendedor', (ctx) => {
 📅 Vence: ${vence.toLocaleDateString('es-MX')}`);
 });
 
-// ─── RESPUESTAS SIMPLES PARA BOTONES DEL ADMIN ───
+// ─── RESPUESTAS DE BOTONES ───
 bot.action('ver_usuarios', (ctx) => ctx.answerCbQuery('👥 Mostrando lista de usuarios...'));
 bot.action('total_usuarios', (ctx) => ctx.answerCbQuery(`📊 Total: ${db.usuarios.size} usuarios`));
 bot.action('ver_datos_usuario', (ctx) => ctx.answerCbQuery('ℹ️ Escribe el usuario para ver sus datos'));
@@ -285,3 +280,4 @@ console.log('🤖 🎮 ELITE SHOP BOT INICIADO CORRECTAMENTE');
 
 process.on('SIGINT', () => bot.stop('SIGINT'));
 process.on('SIGTERM', () => bot.stop('SIGTERM'));
+            
