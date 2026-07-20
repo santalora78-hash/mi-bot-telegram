@@ -98,7 +98,7 @@ ${usuario}
                 [Markup.button.callback('🎉 Mostrar Ventas', 'mostrar_ventas')],
                 [Markup.button.callback('📦 Mis Productos', 'mis_productos_vendedor')],
                 [Markup.button.url('💬 Renovar por WhatsApp', 
-                    `https://wa.me/${WHATSAPP_NUMBER}?text=Vengo%20a%20activar%20mi%20panel%20de%20administrador%20de%20vendedor`)],
+                    `https://wa.me/${WHATSAPP_NUMBER}?text=Vengo%20a%20activar%20mi%20panel%20de%20vendedor`)],
                 [Markup.button.callback('🔙 Volver al Menú', 'menu_principal')]
             ])
         );
@@ -115,7 +115,7 @@ Para activar tu panel de vendedor
 toca el enlace de abajo 👇`,
             Markup.inlineKeyboard([
                 [Markup.button.url('💬 Activar por WhatsApp', 
-                    `https://wa.me/${WHATSAPP_NUMBER}?text=Vengo%20a%20activar%20mi%20panel%20de%20administrador%20de%20vendedor`)],
+                    `https://wa.me/${WHATSAPP_NUMBER}?text=Vengo%20a%20activar%20mi%20panel`)],
                 [Markup.button.callback('🔙 Volver al Menú', 'menu_principal')]
             ])
         );
@@ -174,46 +174,12 @@ bot.command('admin', (ctx) => {
 🔒 Acceso autorizado — 🎮 ELITE SHOP BOT`,
         Markup.inlineKeyboard([
             [Markup.button.callback('👥 Ver Lista de Usuarios', 'ver_usuarios'), Markup.button.callback('📊 Total de Usuarios', 'total_usuarios')],
-            [Markup.button.callback('ℹ️ Ver Datos de Usuario', 'ver_datos_usuario')],
             [Markup.button.callback('💰 Agregar Saldo a Usuario', 'agregar_saldo'), Markup.button.callback('⭐ Agregar VIP', 'agregar_vip')],
             [Markup.button.callback('✅ Activar Vendedor (5 días)', 'activar_vendedor_menu')],
-            [Markup.button.callback('🔄 Renovar Comisión', 'renovar_comision'), Markup.button.callback('❌ Quitar Permiso Vendedor', 'quitar_vendedor')],
-            [Markup.button.callback('📅 Ver Vencimientos', 'ver_vencimientos'), Markup.button.callback('💰 Configurar Comisión', 'configurar_comision')],
-            [Markup.button.callback('📦 Agregar Productos Vendedores', 'agregar_productos_vendedor_menu')],
-            [Markup.button.callback('🔑 Agregar Keys de Vendedores', 'agregar_keys_vendedor_menu')],
-            [Markup.button.callback('📦 Agregar Stock', 'agregar_stock'), Markup.button.callback('✏️ Editar Stock', 'editar_stock')],
-            [Markup.button.callback('🗑️ Quitar Stock', 'quitar_stock'), Markup.button.callback('📊 Ver Stocks', 'ver_stocks')],
-            [Markup.button.callback('📢 Aviso General', 'aviso_general'), Markup.button.callback('🔑 Generar Llaves', 'generar_llaves')],
-            [Markup.button.callback('🎁 Agregar Case', 'agregar_case')],
+            [Markup.button.callback('📦 Agregar Stock', 'agregar_stock'), Markup.button.callback('📊 Ver Stocks', 'ver_stocks')],
             [Markup.button.callback('🔙 Volver al Menú', 'menu_principal')]
         ])
     );
-});
-
-bot.action('agregar_productos_vendedor_menu', (ctx) => {
-    ctx.editMessageText(`📦 AGREGAR PRODUCTOS A VENDEDOR
-
-Escribe así:
-
-/user:Juanito contraseña:12881
-DRIP CLIENT
-HG CHEATS`, Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver', 'admin')]]));
-});
-
-bot.action('agregar_keys_vendedor_menu', (ctx) => {
-    ctx.editMessageText(`🔑 AGREGAR KEYS DE VENDEDORES
-
-Escribe así:
-
-/agregarkeysvendedor
-user:Juanito
-contraseña:18273
-
-coloca tus keys en línea 👇🏻
-
-187273737
-172727373
-187274701`, Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver', 'admin')]]));
 });
 
 bot.action('activar_vendedor_menu', (ctx) => {
@@ -249,7 +215,6 @@ bot.command('activarvendedor', (ctx) => {
     const contraseña = matchPass[1].trim();
     const vence = new Date(Date.now() + DIAS_VENDEDOR * 24 * 60 * 60 * 1000);
     if (!db.usuarios.has(usuario)) db.usuarios.set(usuario, { contraseña, saldo: 0 });
-    else db.usuarios.get(usuario).vendedorActivo = true;
     db.vendedores.set(usuario, { vence });
     ctx.reply(`✅ VENDEDOR ACTIVADO CORRECTAMENTE
 
@@ -260,24 +225,17 @@ bot.command('activarvendedor', (ctx) => {
 // ─── RESPUESTAS DE BOTONES ───
 bot.action('ver_usuarios', (ctx) => ctx.answerCbQuery('👥 Mostrando lista de usuarios...'));
 bot.action('total_usuarios', (ctx) => ctx.answerCbQuery(`📊 Total: ${db.usuarios.size} usuarios`));
-bot.action('ver_datos_usuario', (ctx) => ctx.answerCbQuery('ℹ️ Escribe el usuario para ver sus datos'));
 bot.action('agregar_saldo', (ctx) => ctx.answerCbQuery('💰 Escribe: /agregarsaldo user:nombre monto:100'));
 bot.action('agregar_vip', (ctx) => ctx.answerCbQuery('⭐ Escribe: /agregarvip user:nombre'));
-bot.action('renovar_comision', (ctx) => ctx.answerCbQuery('🔄 Escribe: /renovarvendedor user:nombre'));
-bot.action('quitar_vendedor', (ctx) => ctx.answerCbQuery('❌ Escribe: /quitarvendedor user:nombre'));
-bot.action('ver_vencimientos', (ctx) => ctx.answerCbQuery('📅 Mostrando vencimientos...'));
-bot.action('configurar_comision', (ctx) => ctx.answerCbQuery('💰 Escribe: /comision monto:10'));
 bot.action('agregar_stock', (ctx) => ctx.answerCbQuery('📦 Escribe: /agregarstock producto:nombre keys:10'));
-bot.action('editar_stock', (ctx) => ctx.answerCbQuery('✏️ Escribe: /editarstock producto:nombre'));
-bot.action('quitar_stock', (ctx) => ctx.answerCbQuery('🗑️ Escribe: /quitarstock producto:nombre'));
 bot.action('ver_stocks', (ctx) => ctx.answerCbQuery('📊 Mostrando stocks...'));
-bot.action('aviso_general', (ctx) => ctx.answerCbQuery('📢 Escribe tu mensaje'));
-bot.action('generar_llaves', (ctx) => ctx.answerCbQuery('🔑 Escribe: /generarkeys cantidad:10'));
-bot.action('agregar_case', (ctx) => ctx.answerCbQuery('🎁 Escribe: /agregarcase nombre:precio:cantidad'));
+bot.action('comprar_keys', (ctx) => ctx.answerCbQuery('🛒 Sección de compras'));
+bot.action('mis_keys', (ctx) => ctx.answerCbQuery('🎁 Tus keys'));
+bot.action('mi_cuenta', (ctx) => ctx.answerCbQuery('👤 Tu cuenta'));
+bot.action('historial', (ctx) => ctx.answerCbQuery('📜 Tu historial'));
 
 bot.launch();
 console.log('🤖 🎮 ELITE SHOP BOT INICIADO CORRECTAMENTE');
 
 process.on('SIGINT', () => bot.stop('SIGINT'));
 process.on('SIGTERM', () => bot.stop('SIGTERM'));
-            
