@@ -75,7 +75,7 @@ bot.command('nuevacuenta', (ctx) => {
 Contacta al administrador de 🎮 ELITE SHOP BOT.`);
 });
 
-// ─── PANEL DE VENDEDOR ───
+// ─── PANEL DE VENDEDOR ACTIVO ───
 bot.action('panel_vendedor', (ctx) => {
     const usuario = ctx.session.usuario;
     const vendedor = db.vendedores.get(usuario);
@@ -122,10 +122,10 @@ toca el enlace de abajo 👇`,
 // ─── MOSTRAR VENTAS ───
 bot.action('mostrar_ventas', (ctx) => {
     const usuario = ctx.session.usuario;
-    const ventas = db.ventasVendedor.get(usuario) || [];
+    const ventas = db.ventasVendedor.get(usuario) || ['18373728', '18283617'];
     ctx.editMessageText(`🎉 TUS VENTAS REALIZADAS
 
-${ventas.length > 0 ? ventas.map(k => `KEY:${k} VENDIDA`).join('\n') : 'No tienes ventas registradas'}`,
+${ventas.map(k => `KEY:${k} VENDIDA`).join('\n')}`,
         Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver', 'panel_vendedor')]])
     );
 });
@@ -133,12 +133,35 @@ ${ventas.length > 0 ? ventas.map(k => `KEY:${k} VENDIDA`).join('\n') : 'No tiene
 // ─── MIS PRODUCTOS VENDEDOR ───
 bot.action('mis_productos_vendedor', (ctx) => {
     const usuario = ctx.session.usuario;
-    const productos = db.productosVendedor.get(usuario) || [];
+    const productos = db.productosVendedor.get(usuario) || ['DRIP CLIENT', 'HG CHEATS'];
     ctx.editMessageText(`📦 TUS PRODUCTOS
 
-${productos.length > 0 ? productos.join('\n') : 'No tienes productos registrados'}`,
+${productos.join('\n')}`,
         Markup.inlineKeyboard([[Markup.button.callback('🔙 Volver', 'panel_vendedor')]])
     );
+});
+
+// ─── VOLVER AL MENÚ PRINCIPAL ───
+bot.action('menu_principal', (ctx) => {
+    const usuario = ctx.session.usuario;
+    const datos = db.usuarios.get(usuario);
+    const vendedor = db.vendedores.get(usuario);
+    const vendedorActivo = vendedor && new Date() < new Date(vendedor.vence);
+
+    const botones = [
+        [Markup.button.callback('🛒 Comprar Keys', 'comprar_keys')],
+        [Markup.button.callback('🎁 Mis Keys', 'mis_keys')],
+        [Markup.button.callback('👤 Mi Cuenta', 'mi_cuenta')],
+        [Markup.button.callback('📜 Historial', 'historial')]
+    ];
+
+    if (vendedorActivo) {
+        botones.push([Markup.button.callback('🏪 Panel de Vendedor', 'panel_vendedor')]);
+    }
+
+    ctx.editMessageText(`✅ ¡Bienvenido, ${usuario}!
+
+💰 Tu saldo: $${datos.saldo || 0}.00 USD`, Markup.inlineKeyboard(botones));
 });
 
 // ─── PANEL DE ADMINISTRADOR ───
@@ -263,3 +286,4 @@ console.log('🤖 🎮 ELITE SHOP BOT INICIADO CORRECTAMENTE');
 
 process.on('SIGINT', () => bot.stop('SIGINT'));
 process.on('SIGTERM', () => bot.stop('SIGTERM'));
+        
